@@ -33,15 +33,6 @@ jobs:
   activitysmith_demo:
     runs-on: ubuntu-latest
     steps:
-      - name: Send push notification
-        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
-        with:
-          action: send_push_notification
-          api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-          payload: |
-            title: "Build complete"
-            message: "Your workflow finished successfully."
-
       - name: Start live activity
         id: start_activity
         uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
@@ -50,11 +41,12 @@ jobs:
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
           payload: |
             content_state:
-              title: "Order #1234"
-              subtitle: "Preparing"
+              title: "ActivitySmith API Deployment"
+              subtitle: "ci: install & build"
               number_of_steps: 3
               current_step: 1
               type: "segmented_progress"
+              color: "green"
 
       - name: Update live activity
         uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
@@ -72,10 +64,18 @@ jobs:
           live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
           payload: |
             content_state:
-              title: "Order #1234"
-              subtitle: "Delivered"
-              number_of_steps: 3
+              title: "ActivitySmith API Deployment"
+              subtitle: "done"
               current_step: 3
+
+      - name: Send push notification
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
+        with:
+          action: send_push_notification
+          api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+          payload: |
+            title: "ActivitySmith Deployment"
+            message: "New release deployed to production!"
 ```
 
 ## Notes
