@@ -1,6 +1,6 @@
 {
   "name": "activitysmith-github-action",
-  "version": "1.0.1",
+  "version": "0.1.0",
   "description": "The official ActivitySmith Github Action. Use this to send data to ActivitySmith to start or update live activities, or send push notifications",
   "main": "dist/index.js",
   "type": "module",
@@ -14,18 +14,26 @@
   },
   "keywords": [
     "activitysmith",
-    "github",
-    "action",
-    "workflow",
+    "live-activities",
+    "push-notifications",
+    "api",
+    "sdk",
     "deployment",
-    "publishing"
+    "publishing",
+    "monitoring",
+    "observability",
+    "logging",
+    "logs",
+    "automation",
+    "tracking",
+    "reporting"
   ],
   "author": "ActivitySmith",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/ActivitySmithHQ/activitysmith-github-action/issues"
   },
-  "homepage": "https://github.com/ActivitySmithHQ/activitysmith-github-action#readme",
+  "homepage": "https://activitysmith.com/",
   "dependencies": {
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1",
