@@ -1,6 +1,6 @@
-name: ActivitySmith
+name: ActivitySmith.com
 author: "ActivitySmithHQ"
-description: "Send data to ActivitySmith to start or update live activities, or send push notifications"
+description: "Send push notifications and start, update or end Live Activities directly from your workflows"
 
 inputs:
   action:
