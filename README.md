@@ -1,6 +1,6 @@
 # ActivitySmith GitHub Action
 
-Send data to ActivitySmith to start, update, or end Live Activities, or to send push notifications.
+The official ActivitySmith Github Action. Send push notifications and start, update or end Live Activities directly from your workflows.
 
 ## Inputs
 
@@ -19,73 +19,63 @@ Send data to ActivitySmith to start, update, or end Live Activities, or to send 
 - `time`: Unix epoch time (seconds) when the step finished
 - `live_activity_id`: Live Activity ID returned from `start_live_activity`
 
-## Examples
+## Example workflow
 
-Send a push notification:
-
-```yaml
-- name: Send push notification
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: send_push_notification
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    payload: |
-      {
-        "title": "Build complete",
-        "message": "Your workflow finished successfully."
-      }
-```
-
-Start a Live Activity with inline JSON (note `content_state` is required):
+Full workflow format using the same examples as below:
 
 ```yaml
-- name: Start live activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: start_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    payload: |
-      {
-        "content_state": {
-          "title": "Order #1234",
-          "subtitle": "Preparing",
-          "number_of_steps": 3,
-          "current_step": 1,
-          "type": "segmented_progress"
-        }
-      }
-```
+name: ActivitySmith Demo
 
-Update a Live Activity with a payload file:
+on:
+  workflow_dispatch:
 
-```yaml
-- name: Update live activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: update_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start.outputs.live_activity_id }}
-    payload-file-path: ./activitysmith/payloads/update.yml
-```
+jobs:
+  activitysmith_demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send push notification
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
+        with:
+          action: send_push_notification
+          api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+          payload: |
+            title: "Build complete"
+            message: "Your workflow finished successfully."
 
-End a Live Activity:
+      - name: Start live activity
+        id: start_activity
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
+        with:
+          action: start_live_activity
+          api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+          payload: |
+            content_state:
+              title: "Order #1234"
+              subtitle: "Preparing"
+              number_of_steps: 3
+              current_step: 1
+              type: "segmented_progress"
 
-```yaml
-- name: End live activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: end_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start.outputs.live_activity_id }}
-    payload: |
-      {
-        "content_state": {
-          "title": "Order #1234",
-          "subtitle": "Delivered",
-          "number_of_steps": 3,
-          "current_step": 3
-        }
-      }
+      - name: Update live activity
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
+        with:
+          action: update_live_activity
+          api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+          live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+          payload-file-path: ./activitysmith/payloads/update.yml
+
+      - name: End live activity
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
+        with:
+          action: end_live_activity
+          api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+          live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+          payload: |
+            content_state:
+              title: "Order #1234"
+              subtitle: "Delivered"
+              number_of_steps: 3
+              current_step: 3
 ```
 
 ## Notes
