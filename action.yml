@@ -1,0 +1,41 @@
+name: ActivitySmith
+author: "ActivitySmithHQ"
+description: "Send data to ActivitySmith to start or update live activities, or send push notifications"
+
+inputs:
+  action:
+    description: "Choose the action to perform: start_live_activity, update_live_activity, end_live_activity, send_push_notification."
+    required: true
+  api-key:
+    description: "The authentication value used with the ActivitySmith API."
+    required: true
+  errors:
+    description: "If the step exits with an error on errors or continues."
+    required: false
+    default: "false"
+  live-activity-id:
+    description: "ID of the live activity (required for update/ending)"
+    required: false
+  payload:
+    description: "Attributes that create the content of the request using JSON or YAML."
+    required: false
+  payload-delimiter:
+    description: "Field seperator for nested attributes in the input payload."
+    required: false
+  payload-file-path:
+    description: "Path to a file containing a valid input payload made of JSON or YAML."
+    required: false
+
+outputs:
+  ok:
+    description: "If the request completed without returning errors."
+  response:
+    description: "A JSON stringified version of the ActivitySmith API response."
+  time:
+    description: "The Unix epoch time that the step completed."
+  live_activity_id:
+    description: "The live activity ID returned with start_live_activity."
+
+runs:
+  using: node20
+  main: dist/index.js
