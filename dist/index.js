@@ -7285,7 +7285,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return await response.value();
     }
     /**
-     * Starts a Live Activity on all registered devices and returns an activity_id.
+     * Starts a Live Activity on devices matched by API key scope and optional target channels.
      * Start a Live Activity
      */
     async startLiveActivityRaw(requestParameters, initOverrides) {
@@ -7312,7 +7312,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return new runtime.JSONApiResponse(response);
     }
     /**
-     * Starts a Live Activity on all registered devices and returns an activity_id.
+     * Starts a Live Activity on devices matched by API key scope and optional target channels.
      * Start a Live Activity
      */
     async startLiveActivity(requestParameters, initOverrides) {
@@ -7385,7 +7385,7 @@ const runtime = __nccwpck_require__(6403);
  */
 class PushNotificationsApi extends runtime.BaseAPI {
     /**
-     * Sends a push notification to every paired device in your account.
+     * Sends a push notification to devices matched by API key scope and optional target channels.
      * Send a push notification
      */
     async sendPushNotificationRaw(requestParameters, initOverrides) {
@@ -7412,7 +7412,7 @@ class PushNotificationsApi extends runtime.BaseAPI {
         return new runtime.JSONApiResponse(response);
     }
     /**
-     * Sends a push notification to every paired device in your account.
+     * Sends a push notification to devices matched by API key scope and optional target channels.
      * Send a push notification
      */
     async sendPushNotification(requestParameters, initOverrides) {
@@ -7917,8 +7917,70 @@ exports.TextApiResponse = TextApiResponse;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ActivitySmith = void 0;
+exports.ActivitySmith = exports.LiveActivitiesResource = exports.NotificationsResource = void 0;
 const index_1 = __nccwpck_require__(171);
+function withTargetChannels(request) {
+    const channels = request.channels;
+    if (!channels || channels.length === 0 || request.target) {
+        const { channels: _ignored, ...rest } = request;
+        return rest;
+    }
+    const { channels: _ignored, ...rest } = request;
+    return {
+        ...rest,
+        target: { channels },
+    };
+}
+class NotificationsResource {
+    constructor(api) {
+        this.api = api;
+    }
+    send(request, initOverrides) {
+        return this.api.sendPushNotification({ pushNotificationRequest: withTargetChannels(request) }, initOverrides);
+    }
+    // Backward-compatible alias.
+    sendPushNotification(...args) {
+        return this.api.sendPushNotification(...args);
+    }
+    sendPushNotificationRaw(...args) {
+        return this.api.sendPushNotificationRaw(...args);
+    }
+}
+exports.NotificationsResource = NotificationsResource;
+class LiveActivitiesResource {
+    constructor(api) {
+        this.api = api;
+    }
+    start(request, initOverrides) {
+        return this.api.startLiveActivity({ liveActivityStartRequest: withTargetChannels(request) }, initOverrides);
+    }
+    update(request, initOverrides) {
+        return this.api.updateLiveActivity({ liveActivityUpdateRequest: request }, initOverrides);
+    }
+    end(request, initOverrides) {
+        return this.api.endLiveActivity({ liveActivityEndRequest: request }, initOverrides);
+    }
+    // Backward-compatible aliases.
+    startLiveActivity(...args) {
+        return this.api.startLiveActivity(...args);
+    }
+    updateLiveActivity(...args) {
+        return this.api.updateLiveActivity(...args);
+    }
+    endLiveActivity(...args) {
+        return this.api.endLiveActivity(...args);
+    }
+    startLiveActivityRaw(...args) {
+        return this.api.startLiveActivityRaw(...args);
+    }
+    updateLiveActivityRaw(...args) {
+        return this.api.updateLiveActivityRaw(...args);
+    }
+    endLiveActivityRaw(...args) {
+        return this.api.endLiveActivityRaw(...args);
+    }
+}
+exports.LiveActivitiesResource = LiveActivitiesResource;
 class ActivitySmith {
     constructor(opts) {
         if (!opts?.apiKey) {
@@ -7928,8 +7990,8 @@ class ActivitySmith {
         const config = new index_1.Configuration({
             accessToken: opts.apiKey,
         });
-        this.notifications = new index_1.PushNotificationsApi(config);
-        this.liveActivities = new index_1.LiveActivitiesApi(config);
+        this.notifications = new NotificationsResource(new index_1.PushNotificationsApi(config));
+        this.liveActivities = new LiveActivitiesResource(new index_1.LiveActivitiesApi(config));
     }
 }
 exports.ActivitySmith = ActivitySmith;
@@ -32576,6 +32638,28 @@ var src = __nccwpck_require__(3748);
  */
 class Client {
   /**
+   * Add request target channels if explicitly provided and payload has no target yet.
+   * @param {unknown} payload
+   * @param {string[]} channels
+   * @returns {unknown}
+   */
+  withChannels(payload, channels) {
+    if (!Array.isArray(channels) || channels.length === 0) {
+      return payload;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return payload;
+    }
+
+    const body = /** @type {Record<string, unknown>} */ (payload);
+    if (body.target || body.channels) {
+      return payload;
+    }
+
+    return { ...body, target: { channels } };
+  }
+
+  /**
    * Perform the API call configured with the input payload.
    * @param {Config} config
    */
@@ -32588,13 +32672,13 @@ class Client {
         case ActionType.SendPushNotification:
           config.logger.info("Making ActivitySmith push notification request...");
           response = await client.notifications.sendPushNotificationRaw({
-            pushNotificationRequest: config.content.values,
+            pushNotificationRequest: this.withChannels(config.content.values, config.inputs.channels),
           });
           break;
         case ActionType.StartLiveActivity:
           config.logger.info("Making ActivitySmith start live activity request...");
           response = await client.liveActivities.startLiveActivityRaw({
-            liveActivityStartRequest: config.content.values,
+            liveActivityStartRequest: this.withChannels(config.content.values, config.inputs.channels),
           });
           break;
         case ActionType.UpdateLiveActivity:
@@ -36877,6 +36961,7 @@ class Config {
    * @property {string?} apiKey - The authentication value used with the ActivitySmith API.
    * @property {boolean} errors - If the job should exit after errors or succeed.
    * @property {string?} liveActivityId - Id of live activity to update/end.
+   * @property {string[]} channels - Optional channels for send/start actions.
    * @property {string?} payload - Request contents from the provided input.
    * @property {string?} payloadDelimiter - Seperators of nested attributes.
    * @property {string?} payloadFilePath - Location of a JSON request payload.
@@ -36922,6 +37007,7 @@ class Config {
       apiKey: core.getInput("api-key"),
       errors: core.getBooleanInput("errors"),
       liveActivityId: core.getInput("live-activity-id"),
+      channels: this.parseChannels(core.getInput("channels")),
       payload: core.getInput("payload"),
       payloadDelimiter: core.getInput("payload-delimiter"),
       payloadFilePath: core.getInput("payload-file-path"),
@@ -36965,6 +37051,21 @@ class Config {
       default:
         break;
     }
+  }
+
+  /**
+   * Parse comma-separated channels from action input.
+   * @param {string} value
+   * @returns {string[]}
+   */
+  parseChannels(value) {
+    if (!value) {
+      return [];
+    }
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
   }
 }
 

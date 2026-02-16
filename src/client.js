@@ -8,6 +8,28 @@ import ActivitySmith from "activitysmith";
  */
 export default class Client {
   /**
+   * Add request target channels if explicitly provided and payload has no target yet.
+   * @param {unknown} payload
+   * @param {string[]} channels
+   * @returns {unknown}
+   */
+  withChannels(payload, channels) {
+    if (!Array.isArray(channels) || channels.length === 0) {
+      return payload;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return payload;
+    }
+
+    const body = /** @type {Record<string, unknown>} */ (payload);
+    if (body.target || body.channels) {
+      return payload;
+    }
+
+    return { ...body, target: { channels } };
+  }
+
+  /**
    * Perform the API call configured with the input payload.
    * @param {Config} config
    */
@@ -20,13 +42,13 @@ export default class Client {
         case ActionType.SendPushNotification:
           config.logger.info("Making ActivitySmith push notification request...");
           response = await client.notifications.sendPushNotificationRaw({
-            pushNotificationRequest: config.content.values,
+            pushNotificationRequest: this.withChannels(config.content.values, config.inputs.channels),
           });
           break;
         case ActionType.StartLiveActivity:
           config.logger.info("Making ActivitySmith start live activity request...");
           response = await client.liveActivities.startLiveActivityRaw({
-            liveActivityStartRequest: config.content.values,
+            liveActivityStartRequest: this.withChannels(config.content.values, config.inputs.channels),
           });
           break;
         case ActionType.UpdateLiveActivity:

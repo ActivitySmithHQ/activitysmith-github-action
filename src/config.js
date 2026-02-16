@@ -16,6 +16,7 @@ export default class Config {
    * @property {string?} apiKey - The authentication value used with the ActivitySmith API.
    * @property {boolean} errors - If the job should exit after errors or succeed.
    * @property {string?} liveActivityId - Id of live activity to update/end.
+   * @property {string[]} channels - Optional channels for send/start actions.
    * @property {string?} payload - Request contents from the provided input.
    * @property {string?} payloadDelimiter - Seperators of nested attributes.
    * @property {string?} payloadFilePath - Location of a JSON request payload.
@@ -61,6 +62,7 @@ export default class Config {
       apiKey: core.getInput("api-key"),
       errors: core.getBooleanInput("errors"),
       liveActivityId: core.getInput("live-activity-id"),
+      channels: this.parseChannels(core.getInput("channels")),
       payload: core.getInput("payload"),
       payloadDelimiter: core.getInput("payload-delimiter"),
       payloadFilePath: core.getInput("payload-file-path"),
@@ -104,5 +106,20 @@ export default class Config {
       default:
         break;
     }
+  }
+
+  /**
+   * Parse comma-separated channels from action input.
+   * @param {string} value
+   * @returns {string[]}
+   */
+  parseChannels(value) {
+    if (!value) {
+      return [];
+    }
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
   }
 }

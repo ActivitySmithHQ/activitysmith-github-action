@@ -9,6 +9,7 @@ The official ActivitySmith Github Action. Send push notifications and start, upd
 - `errors` (optional, default `false`): fail the step on error when `true`
 - `live-activity-id` (required for update/end): Live Activity ID
 - `payload` (optional): JSON or YAML string payload
+- `channels` (optional): comma-separated channels for `send_push_notification` and `start_live_activity`
 - `payload-delimiter` (optional): delimiter used to flatten nested payload values
 - `payload-file-path` (optional): path to a JSON/YAML payload file
 
@@ -35,10 +36,11 @@ jobs:
     steps:
       - name: Start live activity
         id: start_activity
-        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.1
         with:
           action: start_live_activity
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+          channels: ios-builds,engineering
           payload: |
             content_state:
               title: "ActivitySmith API Deployment"
@@ -49,7 +51,7 @@ jobs:
               color: "green"
 
       - name: Update live activity
-        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.1
         with:
           action: update_live_activity
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -57,7 +59,7 @@ jobs:
           payload-file-path: ./activitysmith/payloads/update.yml
 
       - name: End live activity
-        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.1
         with:
           action: end_live_activity
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -69,10 +71,11 @@ jobs:
               current_step: 3
 
       - name: Send push notification
-        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.0
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.1
         with:
           action: send_push_notification
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+          channels: ios-builds
           payload: |
             title: "ActivitySmith Deployment"
             message: "New release deployed to production!"

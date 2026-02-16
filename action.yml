@@ -19,6 +19,9 @@ inputs:
   payload:
     description: "Attributes that create the content of the request using JSON or YAML."
     required: false
+  channels:
+    description: "Optional comma-separated channel names to target for send_push_notification and start_live_activity."
+    required: false
   payload-delimiter:
     description: "Field seperator for nested attributes in the input payload."
     required: false
