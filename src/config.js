@@ -18,7 +18,7 @@ export default class Config {
    * @property {string?} liveActivityId - Id of live activity to update/end.
    * @property {string[]} channels - Optional channels for send/start actions.
    * @property {string?} payload - Request contents from the provided input.
-   * @property {string?} payloadDelimiter - Seperators of nested attributes.
+   * @property {string?} payloadDelimiter - Separator for nested attributes.
    * @property {string?} payloadFilePath - Location of a JSON request payload.
    */
 

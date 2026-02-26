@@ -1,6 +1,6 @@
 # ActivitySmith GitHub Action
 
-The official ActivitySmith Github Action. Send push notifications and start, update or end Live Activities directly from your workflows.
+The official ActivitySmith GitHub Action. Send push notifications and start, update or end Live Activities directly from your workflows.
 
 ## Inputs
 
@@ -36,7 +36,7 @@ jobs:
     steps:
       - name: Start live activity
         id: start_activity
-        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.1
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.2
         with:
           action: start_live_activity
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -51,7 +51,7 @@ jobs:
               color: "green"
 
       - name: Update live activity
-        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.1
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.2
         with:
           action: update_live_activity
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -59,7 +59,7 @@ jobs:
           payload-file-path: ./activitysmith/payloads/update.yml
 
       - name: End live activity
-        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.1
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.2
         with:
           action: end_live_activity
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -71,7 +71,7 @@ jobs:
               current_step: 3
 
       - name: Send push notification
-        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.1
+        uses: ActivitySmithHQ/activitysmith-github-action@v0.1.2
         with:
           action: send_push_notification
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -81,10 +81,36 @@ jobs:
             message: "New release deployed to production!"
 ```
 
+Push notification redirection and actions are optional and can be used to redirect the user to a specific URL when they tap the notification or to trigger a specific action when they long-press the notification. Webhooks are executed by ActivitySmith backend.
+
+```yaml
+- name: Send actionable push notification
+  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.2
+  with:
+    action: send_push_notification
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    payload: |
+      title: "Build Failed 🚨"
+      message: "CI pipeline failed on main branch"
+      redirection: "https://github.com/org/repo/actions/runs/123456789"
+      actions:
+        - title: "Open Failing Run"
+          type: "open_url"
+          url: "https://github.com/org/repo/actions/runs/123456789"
+        - title: "Create Incident"
+          type: "webhook"
+          url: "https://hooks.example.com/incidents/create"
+          method: "POST"
+          body:
+            service: "payments-api"
+            severity: "high"
+```
+
 ## Notes
 
 - `payload` supports JSON or YAML.
 - `payload-file-path` supports `.json`, `.yml`, or `.yaml`.
+- Push notification payload supports optional `redirection` and `actions` (max 4 actions).
 - Live Activity payloads must include `content_state` (snake_case).
 - Required fields for `start_live_activity` content_state: `title`, `number_of_steps`, `current_step`, `type`.
 - Required fields for `update_live_activity`/`end_live_activity` content_state: `title`, `current_step` (number_of_steps optional).

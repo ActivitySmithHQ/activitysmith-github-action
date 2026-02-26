@@ -7385,7 +7385,7 @@ const runtime = __nccwpck_require__(6403);
  */
 class PushNotificationsApi extends runtime.BaseAPI {
     /**
-     * Sends a push notification to devices matched by API key scope and optional target channels.
+     * Sends a push notification to devices matched by API key scope and optional target channels. Supports optional redirection URL (tap) and up to 4 interactive actions (long-press on iOS).
      * Send a push notification
      */
     async sendPushNotificationRaw(requestParameters, initOverrides) {
@@ -7412,7 +7412,7 @@ class PushNotificationsApi extends runtime.BaseAPI {
         return new runtime.JSONApiResponse(response);
     }
     /**
-     * Sends a push notification to devices matched by API key scope and optional target channels.
+     * Sends a push notification to devices matched by API key scope and optional target channels. Supports optional redirection URL (tap) and up to 4 interactive actions (long-press on iOS).
      * Send a push notification
      */
     async sendPushNotification(requestParameters, initOverrides) {
@@ -7485,7 +7485,7 @@ __exportStar(__nccwpck_require__(7046), exports);
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ContentStateUpdateStepColorEnum = exports.ContentStateUpdateColorEnum = exports.ContentStateStartStepColorEnum = exports.ContentStateStartColorEnum = exports.ContentStateStartTypeEnum = exports.ContentStateEndStepColorEnum = exports.ContentStateEndColorEnum = void 0;
+exports.PushNotificationWebhookMethod = exports.PushNotificationActionType = exports.ContentStateUpdateStepColorEnum = exports.ContentStateUpdateColorEnum = exports.ContentStateStartStepColorEnum = exports.ContentStateStartColorEnum = exports.ContentStateStartTypeEnum = exports.ContentStateEndStepColorEnum = exports.ContentStateEndColorEnum = void 0;
 /**
  * @export
  */
@@ -7575,6 +7575,22 @@ exports.ContentStateUpdateStepColorEnum = {
     Red: 'red',
     Orange: 'orange',
     Yellow: 'yellow'
+};
+/**
+ *
+ * @export
+ */
+exports.PushNotificationActionType = {
+    OpenUrl: 'open_url',
+    Webhook: 'webhook'
+};
+/**
+ *
+ * @export
+ */
+exports.PushNotificationWebhookMethod = {
+    Get: 'GET',
+    Post: 'POST'
 };
 
 
@@ -32710,8 +32726,9 @@ class Client {
       config.core.setOutput("ok", status >= 200 && status < 300);
       config.core.setOutput("response", JSON.stringify(data));
 
-      if (data?.activity_id) {
-        config.core.setOutput("live_activity_id", data.activity_id);
+      const liveActivityId = data?.activity_id ?? data?.activityId;
+      if (typeof liveActivityId === "string" && liveActivityId.length > 0) {
+        config.core.setOutput("live_activity_id", liveActivityId);
       }
 
       config.core.debug(JSON.stringify(data));
@@ -36963,7 +36980,7 @@ class Config {
    * @property {string?} liveActivityId - Id of live activity to update/end.
    * @property {string[]} channels - Optional channels for send/start actions.
    * @property {string?} payload - Request contents from the provided input.
-   * @property {string?} payloadDelimiter - Seperators of nested attributes.
+   * @property {string?} payloadDelimiter - Separator for nested attributes.
    * @property {string?} payloadFilePath - Location of a JSON request payload.
    */
 

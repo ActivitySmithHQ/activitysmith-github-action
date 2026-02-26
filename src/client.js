@@ -80,8 +80,9 @@ export default class Client {
       config.core.setOutput("ok", status >= 200 && status < 300);
       config.core.setOutput("response", JSON.stringify(data));
 
-      if (data?.activity_id) {
-        config.core.setOutput("live_activity_id", data.activity_id);
+      const liveActivityId = data?.activity_id ?? data?.activityId;
+      if (typeof liveActivityId === "string" && liveActivityId.length > 0) {
+        config.core.setOutput("live_activity_id", liveActivityId);
       }
 
       config.core.debug(JSON.stringify(data));
