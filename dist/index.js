@@ -7250,7 +7250,7 @@ const runtime = __nccwpck_require__(6403);
  */
 class LiveActivitiesApi extends runtime.BaseAPI {
     /**
-     * Ends a Live Activity and archives its lifecycle.
+     * Ends a Live Activity and archives its lifecycle. For segmented_progress activities, you can send the latest number_of_steps here if the workflow changed after start.
      * End a Live Activity
      */
     async endLiveActivityRaw(requestParameters, initOverrides) {
@@ -7277,7 +7277,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return new runtime.JSONApiResponse(response);
     }
     /**
-     * Ends a Live Activity and archives its lifecycle.
+     * Ends a Live Activity and archives its lifecycle. For segmented_progress activities, you can send the latest number_of_steps here if the workflow changed after start.
      * End a Live Activity
      */
     async endLiveActivity(requestParameters, initOverrides) {
@@ -7285,7 +7285,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return await response.value();
     }
     /**
-     * Starts a Live Activity on devices matched by API key scope and optional target channels.
+     * Starts a Live Activity on devices matched by API key scope and optional target channels. For segmented_progress activities, number_of_steps can be changed later during update or end calls if the workflow changes.
      * Start a Live Activity
      */
     async startLiveActivityRaw(requestParameters, initOverrides) {
@@ -7312,7 +7312,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return new runtime.JSONApiResponse(response);
     }
     /**
-     * Starts a Live Activity on devices matched by API key scope and optional target channels.
+     * Starts a Live Activity on devices matched by API key scope and optional target channels. For segmented_progress activities, number_of_steps can be changed later during update or end calls if the workflow changes.
      * Start a Live Activity
      */
     async startLiveActivity(requestParameters, initOverrides) {
@@ -7320,7 +7320,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return await response.value();
     }
     /**
-     * Updates an existing Live Activity. If the per-activity token is not registered yet, the update is queued.
+     * Updates an existing Live Activity. If the per-activity token is not registered yet, the update is queued. For segmented_progress activities, you can increase or decrease number_of_steps here as the workflow changes.
      * Update a Live Activity
      */
     async updateLiveActivityRaw(requestParameters, initOverrides) {
@@ -7347,7 +7347,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return new runtime.JSONApiResponse(response);
     }
     /**
-     * Updates an existing Live Activity. If the per-activity token is not registered yet, the update is queued.
+     * Updates an existing Live Activity. If the per-activity token is not registered yet, the update is queued. For segmented_progress activities, you can increase or decrease number_of_steps here as the workflow changes.
      * Update a Live Activity
      */
     async updateLiveActivity(requestParameters, initOverrides) {
@@ -7485,7 +7485,14 @@ __exportStar(__nccwpck_require__(7046), exports);
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.PushNotificationWebhookMethod = exports.PushNotificationActionType = exports.ContentStateUpdateStepColorEnum = exports.ContentStateUpdateColorEnum = exports.ContentStateStartStepColorEnum = exports.ContentStateStartColorEnum = exports.ContentStateStartTypeEnum = exports.ContentStateEndStepColorEnum = exports.ContentStateEndColorEnum = void 0;
+exports.PushNotificationWebhookMethod = exports.PushNotificationActionType = exports.ContentStateUpdateStepColorEnum = exports.ContentStateUpdateColorEnum = exports.ContentStateUpdateTypeEnum = exports.ContentStateStartStepColorEnum = exports.ContentStateStartColorEnum = exports.ContentStateStartTypeEnum = exports.ContentStateEndStepColorEnum = exports.ContentStateEndColorEnum = exports.ContentStateEndTypeEnum = void 0;
+/**
+ * @export
+ */
+exports.ContentStateEndTypeEnum = {
+    SegmentedProgress: 'segmented_progress',
+    Progress: 'progress'
+};
 /**
  * @export
  */
@@ -7518,7 +7525,8 @@ exports.ContentStateEndStepColorEnum = {
  * @export
  */
 exports.ContentStateStartTypeEnum = {
-    SegmentedProgress: 'segmented_progress'
+    SegmentedProgress: 'segmented_progress',
+    Progress: 'progress'
 };
 /**
  * @export
@@ -7547,6 +7555,13 @@ exports.ContentStateStartStepColorEnum = {
     Red: 'red',
     Orange: 'orange',
     Yellow: 'yellow'
+};
+/**
+ * @export
+ */
+exports.ContentStateUpdateTypeEnum = {
+    SegmentedProgress: 'segmented_progress',
+    Progress: 'progress'
 };
 /**
  * @export
