@@ -1,8 +1,8 @@
 # ActivitySmith GitHub Action
 
-The official ActivitySmith GitHub Action. Send push notifications and start, update or end Live Activities directly from your workflows.
+The official ActivitySmith GitHub Action. Send push notifications with optional rich media, and start, update or end Live Activities directly from your workflows.
 
-Examples below use `@v0.1.3`.
+Examples below use `@v0.1.4`.
 
 ## Inputs
 
@@ -49,7 +49,7 @@ Use `segmented_progress` when progress is easier to follow as steps instead of a
 ```yaml
 - name: Start segmented progress Live Activity
   id: start_activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.3
+  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
   with:
     action: start_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -72,7 +72,7 @@ Use `segmented_progress` when progress is easier to follow as steps instead of a
 
 ```yaml
 - name: Update segmented progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.3
+  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
   with:
     action: update_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -94,7 +94,7 @@ Use `segmented_progress` when progress is easier to follow as steps instead of a
 
 ```yaml
 - name: End segmented progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.3
+  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
   with:
     action: end_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -123,7 +123,7 @@ Send either `percentage` or `value` with `upper_limit`.
 ```yaml
 - name: Start progress Live Activity
   id: start_activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.3
+  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
   with:
     action: start_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -144,7 +144,7 @@ Send either `percentage` or `value` with `upper_limit`.
 
 ```yaml
 - name: Update progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.3
+  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
   with:
     action: update_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -164,7 +164,7 @@ Send either `percentage` or `value` with `upper_limit`.
 
 ```yaml
 - name: End progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.3
+  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
   with:
     action: end_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -181,7 +181,7 @@ Send either `percentage` or `value` with `upper_limit`.
 
 ```yaml
 - name: Send push notification
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.3
+  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
   with:
     action: send_push_notification
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -191,11 +191,45 @@ Send either `percentage` or `value` with `upper_limit`.
       message: "New release deployed to production!"
 ```
 
+### Rich Push Notifications with Media
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/rich-push-notification-with-image.png" alt="Rich push notification with image" width="680" />
+</p>
+
+```yaml
+- name: Send rich push notification
+  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
+  with:
+    action: send_push_notification
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    payload: |
+      title: "Homepage ready"
+      message: "Your agent finished the redesign."
+      media: "https://cdn.example.com/output/homepage-v2.png"
+      redirection: "https://github.com/acme/web/pull/482"
+```
+
+Send images, videos, or audio with your push notifications, press and hold to preview media directly from the notification, then tap through to open the linked content.
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/rich-push-notification-with-audio.png" alt="Rich push notification with audio" width="680" />
+</p>
+
+What will work:
+
+- direct image URL: `.jpg`, `.png`, `.gif`, etc.
+- direct audio file URL: `.mp3`, `.m4a`, etc.
+- direct video file URL: `.mp4`, `.mov`, etc.
+- URL that responds with a proper media `Content-Type`, even if the path has no extension
+
+`media` can be combined with `redirection`, but not with `actions`.
+
 Push notification redirection and actions are optional and can be used to redirect the user to a specific URL when they tap the notification or to trigger a specific action when they long-press the notification. Webhooks are executed by ActivitySmith backend.
 
 ```yaml
 - name: Send actionable push notification
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.3
+  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
   with:
     action: send_push_notification
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -220,7 +254,8 @@ Push notification redirection and actions are optional and can be used to redire
 
 - `payload` supports JSON or YAML.
 - `payload-file-path` supports `.json`, `.yml`, or `.yaml`.
-- Push notification payload supports optional `redirection` and `actions` (max 4 actions).
+- Push notification payload supports optional `media`, `redirection`, and `actions` (max 4 actions).
+- `media` can be combined with `redirection`, but not with `actions`.
 - Live Activity payloads must include `content_state` (snake_case).
 - For `segmented_progress` start payloads, include `title`, `type`, `number_of_steps`, and `current_step`.
 - For `progress` start payloads, include `title`, `type`, and either `percentage`, or `value` with `upper_limit`.

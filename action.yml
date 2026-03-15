@@ -1,6 +1,6 @@
 name: ActivitySmith.com
 author: "ActivitySmithHQ"
-description: "Send push notifications and start, update or end segmented_progress or progress Live Activities directly from your workflows"
+description: "Send push notifications with optional rich media and start, update or end segmented_progress or progress Live Activities directly from your workflows"
 
 inputs:
   action:
@@ -17,7 +17,7 @@ inputs:
     description: "ID of the live activity (required for update/ending)"
     required: false
   payload:
-    description: "Request body content using JSON or YAML. Live Activities support segmented_progress and progress payloads."
+    description: "Request body content using JSON or YAML. Push notifications support media, redirection, and actions. Live Activities support segmented_progress and progress payloads."
     required: false
   channels:
     description: "Optional comma-separated channel names to target for send_push_notification and start_live_activity."

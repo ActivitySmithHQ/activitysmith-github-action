@@ -32669,6 +32669,33 @@ var src = __nccwpck_require__(3748);
  */
 class Client {
   /**
+   * Validate push payload constraints before the API call.
+   * @param {unknown} payload
+   * @param {Config} config
+   */
+  validatePushPayload(payload, config) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return;
+    }
+
+    const body = /** @type {Record<string, unknown>} */ (payload);
+    const media =
+      typeof body.media === "string" ? body.media.trim() : undefined;
+    const actions = body.actions;
+
+    if (!media) {
+      return;
+    }
+
+    if (Array.isArray(actions) && actions.length > 0) {
+      throw new ActivitySmithError(
+        config.core,
+        "Invalid payload! media cannot be combined with actions."
+      );
+    }
+  }
+
+  /**
    * Add request target channels if explicitly provided and payload has no target yet.
    * @param {unknown} payload
    * @param {string[]} channels
@@ -32702,6 +32729,7 @@ class Client {
       switch (config.inputs.action) {
         case ActionType.SendPushNotification:
           config.logger.info("Making ActivitySmith push notification request...");
+          this.validatePushPayload(config.content.values, config);
           response = await client.notifications.sendPushNotificationRaw({
             pushNotificationRequest: this.withChannels(config.content.values, config.inputs.channels),
           });
