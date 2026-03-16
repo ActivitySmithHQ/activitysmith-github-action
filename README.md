@@ -1,26 +1,6 @@
 # ActivitySmith GitHub Action
 
-The official ActivitySmith GitHub Action. Send push notifications with optional rich media, and start, update or end Live Activities directly from your workflows.
-
-Examples below use `@v0.1.4`.
-
-## Inputs
-
-- `action` (required): `send_push_notification`, `start_live_activity`, `update_live_activity`, `end_live_activity`
-- `api-key` (required): ActivitySmith API key
-- `errors` (optional, default `false`): fail the step on error when `true`
-- `live-activity-id` (required for update/end): Live Activity ID
-- `payload` (optional): JSON or YAML string payload
-- `channels` (optional): comma-separated channels for `send_push_notification` and `start_live_activity`
-- `payload-delimiter` (optional): delimiter used to flatten nested payload values
-- `payload-file-path` (optional): path to a JSON/YAML payload file
-
-## Outputs
-
-- `ok`: `true` when the request succeeded
-- `response`: JSON stringified API response (or error response)
-- `time`: Unix epoch time (seconds) when the step finished
-- `live_activity_id`: Live Activity ID returned from `start_live_activity`
+The official ActivitySmith GitHub Action. Send [Push Notifications](#push-notifications) with optional rich media, and start, update, or end [Live Activities](#live-activities) directly from your workflows.
 
 ## Live Activities
 
@@ -53,7 +33,6 @@ Use `segmented_progress` when progress is easier to follow as steps instead of a
   with:
     action: start_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    channels: ios-builds,engineering
     payload: |
       content_state:
         title: "Nightly database backup"
@@ -177,7 +156,19 @@ Send either `percentage` or `value` with `upper_limit`.
         auto_dismiss_minutes: 2
 ```
 
-### Push notifications
+## Push Notifications
+
+Push Notifications support three common patterns:
+
+- simple delivery alerts
+- rich media previews
+- actionable follow-up from the notification itself
+
+### Simple Push Notifications
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/deployment-push-notification.png" alt="Deployment push notification" width="680" />
+</p>
 
 ```yaml
 - name: Send push notification
@@ -185,9 +176,8 @@ Send either `percentage` or `value` with `upper_limit`.
   with:
     action: send_push_notification
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    channels: ios-builds
     payload: |
-      title: "ActivitySmith Deployment"
+      title: "API Deployment"
       message: "New release deployed to production!"
 ```
 
@@ -225,7 +215,13 @@ What will work:
 
 `media` can be combined with `redirection`, but not with `actions`.
 
-Push notification redirection and actions are optional and can be used to redirect the user to a specific URL when they tap the notification or to trigger a specific action when they long-press the notification. Webhooks are executed by ActivitySmith backend.
+### Actionable Push Notifications
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/actionable-push-notifications-3.png" alt="Actionable push notification" width="680" />
+</p>
+
+Add redirection when tapping the notification should open a specific URL, and use action buttons when someone should be able to act on the notification immediately. Webhook actions are executed by ActivitySmith backend.
 
 ```yaml
 - name: Send actionable push notification
@@ -250,15 +246,30 @@ Push notification redirection and actions are optional and can be used to redire
             severity: "high"
 ```
 
+## Inputs
+
+- `action` (required): `send_push_notification`, `start_live_activity`, `update_live_activity`, or `end_live_activity`
+- `api-key` (required): ActivitySmith API key
+- `payload` (optional): inline JSON or YAML payload
+- `payload-file-path` (optional): path to a `.json`, `.yml`, or `.yaml` payload file
+- `live-activity-id` (required for `update_live_activity` and `end_live_activity`): Live Activity ID
+- `channels` (optional): comma-separated channels for `send_push_notification` and `start_live_activity`
+- `errors` (optional, default `false`): set to `true` to fail the step when the API request fails
+- `payload-delimiter` (optional): advanced override for nested payload flattening
+
+## Outputs
+
+- `ok`: `true` when the request succeeds, otherwise `false`
+- `response`: JSON stringified API response or error response
+- `time`: Unix epoch time (seconds) when the step finished
+- `live_activity_id`: returned by `start_live_activity`
+
 ## Notes
 
-- `payload` supports JSON or YAML.
-- `payload-file-path` supports `.json`, `.yml`, or `.yaml`.
-- Push notification payload supports optional `media`, `redirection`, and `actions` (max 4 actions).
+- Use either `payload` or `payload-file-path`.
+- Both inline payloads and payload files can be JSON or YAML.
+- Live Activity payloads go under `content_state` and should use snake_case keys.
+- `live-activity-id` is required for update and end actions.
+- Push notification payloads support optional `media`, `redirection`, and up to 4 `actions`.
 - `media` can be combined with `redirection`, but not with `actions`.
-- Live Activity payloads must include `content_state` (snake_case).
-- For `segmented_progress` start payloads, include `title`, `type`, `number_of_steps`, and `current_step`.
-- For `progress` start payloads, include `title`, `type`, and either `percentage`, or `value` with `upper_limit`.
-- For `segmented_progress` update/end payloads, include `title`, `current_step`, and optionally `number_of_steps`.
-- For `progress` update/end payloads, include `title`, and either `percentage`, or `value` with `upper_limit`.
-- For update/end, `live-activity-id` is required. The action will set `activity_id` in the request body.
+- `channels` only applies to `send_push_notification` and `start_live_activity`. If your payload already includes `target` or `channels`, the action leaves it unchanged.
