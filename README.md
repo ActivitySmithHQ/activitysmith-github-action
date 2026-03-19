@@ -29,7 +29,7 @@ Use `segmented_progress` when progress is easier to follow as steps instead of a
 ```yaml
 - name: Start segmented progress Live Activity
   id: start_activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
     action: start_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -51,7 +51,7 @@ Use `segmented_progress` when progress is easier to follow as steps instead of a
 
 ```yaml
 - name: Update segmented progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
     action: update_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -73,7 +73,7 @@ Use `segmented_progress` when progress is easier to follow as steps instead of a
 
 ```yaml
 - name: End segmented progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
     action: end_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -102,7 +102,7 @@ Send either `percentage` or `value` with `upper_limit`.
 ```yaml
 - name: Start progress Live Activity
   id: start_activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
     action: start_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -123,7 +123,7 @@ Send either `percentage` or `value` with `upper_limit`.
 
 ```yaml
 - name: Update progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
     action: update_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -143,7 +143,7 @@ Send either `percentage` or `value` with `upper_limit`.
 
 ```yaml
 - name: End progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
     action: end_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -154,6 +154,61 @@ Send either `percentage` or `value` with `upper_limit`.
         subtitle: "Added 200 mi range"
         percentage: 100
         auto_dismiss_minutes: 2
+```
+
+### Live Activity Action
+
+Just like Actionable Push Notifications, Live Activities can have a button that opens provided URL in a browser or triggers a webhook. Webhooks are executed by the ActivitySmith backend.
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/live-activity-with-action.png?v=20260319-1" alt="Live Activity with action" width="680" />
+</p>
+
+#### Open URL action
+
+```yaml
+- name: Start Live Activity with open URL action
+  id: start_activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: start_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    payload: |
+      content_state:
+        title: "Deploying payments-api"
+        subtitle: "Running database migrations"
+        number_of_steps: 5
+        current_step: 3
+        type: "segmented_progress"
+      action:
+        title: "Open Workflow"
+        type: "open_url"
+        url: "https://github.com/acme/payments-api/actions/runs/1234567890"
+```
+
+#### Webhook action
+
+```yaml
+- name: Update Live Activity with webhook action
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: update_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    payload: |
+      content_state:
+        title: "Reindexing product search"
+        subtitle: "Shard 7 of 12"
+        number_of_steps: 12
+        current_step: 7
+      action:
+        title: "Pause Reindex"
+        type: "webhook"
+        url: "https://ops.example.com/hooks/search/reindex/pause"
+        method: "POST"
+        body:
+          job_id: "reindex-2026-03-19"
+          requested_by: "activitysmith-github-action"
 ```
 
 ## Push Notifications
@@ -172,7 +227,7 @@ Push Notifications support three common patterns:
 
 ```yaml
 - name: Send push notification
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
     action: send_push_notification
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -189,7 +244,7 @@ Push Notifications support three common patterns:
 
 ```yaml
 - name: Send rich push notification
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
     action: send_push_notification
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -225,7 +280,7 @@ Add redirection when tapping the notification should open a specific URL, and us
 
 ```yaml
 - name: Send actionable push notification
-  uses: ActivitySmithHQ/activitysmith-github-action@v0.1.4
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
     action: send_push_notification
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
@@ -250,7 +305,7 @@ Add redirection when tapping the notification should open a specific URL, and us
 
 - `action` (required): `send_push_notification`, `start_live_activity`, `update_live_activity`, or `end_live_activity`
 - `api-key` (required): ActivitySmith API key
-- `payload` (optional): inline JSON or YAML payload
+- `payload` (optional): inline JSON or YAML payload. Push notifications support optional `media`, `redirection`, and up to 4 `actions`. Live Activities support segmented/progress `content_state` plus one optional `action`.
 - `payload-file-path` (optional): path to a `.json`, `.yml`, or `.yaml` payload file
 - `live-activity-id` (required for `update_live_activity` and `end_live_activity`): Live Activity ID
 - `channels` (optional): comma-separated channels for `send_push_notification` and `start_live_activity`
@@ -271,5 +326,6 @@ Add redirection when tapping the notification should open a specific URL, and us
 - Live Activity payloads go under `content_state` and should use snake_case keys.
 - `live-activity-id` is required for update and end actions.
 - Push notification payloads support optional `media`, `redirection`, and up to 4 `actions`.
+- Live Activity payloads support one optional `action`.
 - `media` can be combined with `redirection`, but not with `actions`.
 - `channels` only applies to `send_push_notification` and `start_live_activity`. If your payload already includes `target` or `channels`, the action leaves it unchanged.

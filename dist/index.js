@@ -7385,7 +7385,7 @@ const runtime = __nccwpck_require__(6403);
  */
 class PushNotificationsApi extends runtime.BaseAPI {
     /**
-     * Sends a push notification to devices matched by API key scope and optional target channels. Supports optional redirection URL (tap) and up to 4 interactive actions (long-press on iOS).
+     * Sends a push notification to devices matched by API key scope and optional target channels. Supports optional redirection URL, optional media preview or playback when the notification is expanded, and up to 4 interactive actions. `media` cannot be combined with `actions`.
      * Send a push notification
      */
     async sendPushNotificationRaw(requestParameters, initOverrides) {
@@ -7412,7 +7412,7 @@ class PushNotificationsApi extends runtime.BaseAPI {
         return new runtime.JSONApiResponse(response);
     }
     /**
-     * Sends a push notification to devices matched by API key scope and optional target channels. Supports optional redirection URL (tap) and up to 4 interactive actions (long-press on iOS).
+     * Sends a push notification to devices matched by API key scope and optional target channels. Supports optional redirection URL, optional media preview or playback when the notification is expanded, and up to 4 interactive actions. `media` cannot be combined with `actions`.
      * Send a push notification
      */
     async sendPushNotification(requestParameters, initOverrides) {
@@ -7485,7 +7485,7 @@ __exportStar(__nccwpck_require__(7046), exports);
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.PushNotificationWebhookMethod = exports.PushNotificationActionType = exports.ContentStateUpdateStepColorEnum = exports.ContentStateUpdateColorEnum = exports.ContentStateUpdateTypeEnum = exports.ContentStateStartStepColorEnum = exports.ContentStateStartColorEnum = exports.ContentStateStartTypeEnum = exports.ContentStateEndStepColorEnum = exports.ContentStateEndColorEnum = exports.ContentStateEndTypeEnum = void 0;
+exports.PushNotificationWebhookMethod = exports.PushNotificationActionType = exports.LiveActivityWebhookMethod = exports.LiveActivityActionType = exports.ContentStateUpdateStepColorEnum = exports.ContentStateUpdateColorEnum = exports.ContentStateUpdateTypeEnum = exports.ContentStateStartStepColorEnum = exports.ContentStateStartColorEnum = exports.ContentStateStartTypeEnum = exports.ContentStateEndStepColorEnum = exports.ContentStateEndColorEnum = exports.ContentStateEndTypeEnum = void 0;
 /**
  * @export
  */
@@ -7590,6 +7590,22 @@ exports.ContentStateUpdateStepColorEnum = {
     Red: 'red',
     Orange: 'orange',
     Yellow: 'yellow'
+};
+/**
+ *
+ * @export
+ */
+exports.LiveActivityActionType = {
+    OpenUrl: 'open_url',
+    Webhook: 'webhook'
+};
+/**
+ *
+ * @export
+ */
+exports.LiveActivityWebhookMethod = {
+    Get: 'GET',
+    Post: 'POST'
 };
 /**
  *
@@ -7962,19 +7978,40 @@ function withTargetChannels(request) {
         target: { channels },
     };
 }
+function hasMediaValue(media) {
+    if (typeof media === "string") {
+        return media.trim().length > 0;
+    }
+    return media !== null && media !== undefined;
+}
+function hasActionsValue(actions) {
+    if (Array.isArray(actions)) {
+        return actions.length > 0;
+    }
+    return actions !== null && actions !== undefined;
+}
+function assertValidPushRequest(request) {
+    if (hasMediaValue(request.media) && hasActionsValue(request.actions)) {
+        throw new Error("ActivitySmith: media cannot be combined with actions");
+    }
+}
 class NotificationsResource {
     constructor(api) {
         this.api = api;
     }
     send(request, initOverrides) {
-        return this.api.sendPushNotification({ pushNotificationRequest: withTargetChannels(request) }, initOverrides);
+        const normalized = withTargetChannels(request);
+        assertValidPushRequest(normalized);
+        return this.api.sendPushNotification({ pushNotificationRequest: normalized }, initOverrides);
     }
     // Backward-compatible alias.
-    sendPushNotification(...args) {
-        return this.api.sendPushNotification(...args);
+    sendPushNotification(requestParameters, initOverrides) {
+        assertValidPushRequest(requestParameters.pushNotificationRequest);
+        return this.api.sendPushNotification(requestParameters, initOverrides);
     }
-    sendPushNotificationRaw(...args) {
-        return this.api.sendPushNotificationRaw(...args);
+    sendPushNotificationRaw(requestParameters, initOverrides) {
+        assertValidPushRequest(requestParameters.pushNotificationRequest);
+        return this.api.sendPushNotificationRaw(requestParameters, initOverrides);
     }
 }
 exports.NotificationsResource = NotificationsResource;
