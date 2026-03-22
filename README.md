@@ -1,41 +1,212 @@
 # ActivitySmith GitHub Action
 
-The official ActivitySmith GitHub Action. Send [Push Notifications](#push-notifications) with optional rich media, and trigger stateless or manual [Live Activities](#live-activities) directly from your workflows.
+The official ActivitySmith GitHub Action. Send [Push Notifications](#push-notifications) with optional rich media, and drive [Live Activities](#live-activities) with full lifecycle control or stream updates directly from your workflows.
 
 ## Live Activities
 
 <p align="center">
-  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-action.png" alt="Live Activities example" width="680" />
+  <img src="https://cdn.activitysmith.com/features/update-live-activity.png" alt="Deployment Live Activity" width="680" />
 </p>
 
-ActivitySmith supports two ways to drive Live Activities from GitHub Actions:
+GitHub Actions is a natural fit for full lifecycle control. A workflow has a
+clear start, middle, and end, and step outputs make it easy to pass
+`live_activity_id` from one step to the next. For most GitHub workflows, this
+is the best way to drive Live Activities.
 
-- Recommended: stream updates with `action: stream_live_activity`
-- Advanced: manual lifecycle control with `start_live_activity`, `update_live_activity`, and `end_live_activity`
-
-Use stream updates when you want the easiest, stateless flow. You do not need to
-store `live_activity_id` or manage lifecycle state yourself. Send the latest
-state for a stable `stream-key` and ActivitySmith will start or update the Live
-Activity for you. When the tracked process is over, call
-`action: end_live_activity_stream`.
-
-Use the manual lifecycle actions when you need direct control over a specific
-Live Activity instance.
+Use stream actions when the same Live Activity should be updated across
+scheduled runs, separate workflows, or other stateless automation where you do
+not want to store `live_activity_id` yourself.
 
 Live Activity UI types:
 
-- `metrics`: best for live operational stats like server CPU and memory, queue depth, or replica lag
 - `segmented_progress`: best for step-based workflows like deployments, backups, and ETL pipelines
 - `progress`: best for continuous jobs like uploads, reindexes, and long-running migrations tracked as a percentage
+- `metrics`: best for live operational stats like server CPU and memory, queue depth, or replica lag
 
-### Recommended: Stream updates
+### Recommended for GitHub Actions: Full lifecycle control
 
-Use a stable `stream-key` to identify the system or workflow you are tracking,
-such as a server, deployment, build pipeline, scheduled workflow, or charging
-session. This is especially useful for scheduled workflows where you do not
-want to store `live_activity_id` between runs.
+For deployments, releases, migrations, and other bounded workflows, use the
+explicit lifecycle actions:
 
-#### Metrics
+1. Run `start_live_activity` when the job starts.
+2. Save the returned `live_activity_id`.
+3. Run `update_live_activity` as the workflow moves forward.
+4. Run `end_live_activity` when the work is finished.
+
+#### Deployment workflow example
+
+Use `segmented_progress` when the work has clear stages and you want the Live
+Activity to mirror the workflow step by step.
+
+#### Start
+
+```yaml
+- name: Start deployment Live Activity
+  id: start_activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: start_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    payload: |
+      content_state:
+        title: "Deploying payments-api"
+        subtitle: "Build container image"
+        type: "segmented_progress"
+        number_of_steps: 3
+        current_step: 1
+```
+
+#### Update
+
+```yaml
+- name: Update deployment Live Activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: update_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    payload: |
+      content_state:
+        title: "Deploying payments-api"
+        subtitle: "Run database migrations"
+        type: "segmented_progress"
+        number_of_steps: 3
+        current_step: 2
+```
+
+#### End
+
+```yaml
+- name: End deployment Live Activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: end_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    payload: |
+      content_state:
+        title: "payments-api deployed"
+        subtitle: "Production healthy"
+        type: "segmented_progress"
+        number_of_steps: 3
+        current_step: 3
+        auto_dismiss_minutes: 2
+```
+
+### Other lifecycle patterns
+
+#### Progress example
+
+Use `progress` when the state is naturally continuous, such as a long-running
+upload, reindex, or data migration.
+
+```yaml
+- name: Update reindex Live Activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: update_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    payload: |
+      content_state:
+        title: "Reindexing product search"
+        subtitle: "catalog-v2"
+        type: "progress"
+        percentage: 60
+```
+
+#### Metrics example
+
+Use `metrics` when you want to keep a small set of live stats visible during a
+bounded workflow, such as canary health during a deployment or pressure metrics
+while a migration is running.
+
+```yaml
+- name: Update canary health Live Activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: update_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    payload: |
+      content_state:
+        title: "Canary Health"
+        subtitle: "payments-api"
+        type: "metrics"
+        metrics:
+          - label: "CPU"
+            value: 31
+            unit: "%"
+          - label: "MEM"
+            value: 58
+            unit: "%"
+```
+
+### Live Activity Action
+
+Just like Actionable Push Notifications, Live Activities can have a button that
+opens a URL in a browser or triggers a webhook. Webhooks are executed by the
+ActivitySmith backend.
+
+#### Open URL action
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/live-activity-with-action.png?v=20260319-1" alt="Deployment Live Activity with action" width="680" />
+</p>
+
+```yaml
+- name: Start Live Activity with open URL action
+  id: start_activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: start_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    payload: |
+      content_state:
+        title: "Deploying payments-api"
+        subtitle: "Running database migrations"
+        type: "segmented_progress"
+        number_of_steps: 5
+        current_step: 3
+      action:
+        title: "Open Workflow"
+        type: "open_url"
+        url: "https://github.com/acme/payments-api/actions/runs/1234567890"
+```
+
+#### Webhook action
+
+```yaml
+- name: Update Live Activity with webhook action
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: update_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    payload: |
+      content_state:
+        title: "Reindexing product search"
+        subtitle: "Shard 7 of 12"
+        number_of_steps: 12
+        current_step: 7
+      action:
+        title: "Pause Reindex"
+        type: "webhook"
+        url: "https://ops.example.com/hooks/search/reindex/pause"
+        method: "POST"
+        body:
+          job_id: "reindex-2026-03-19"
+          requested_by: "activitysmith-github-action"
+```
+
+### Use stream when the activity spans multiple runs
+
+Stream actions are still useful in GitHub Actions when the same Live Activity
+should be updated by scheduled workflows, separate workflow runs, or jobs that
+should stay stateless. In that case, send the latest state with a stable
+`stream-key` and ActivitySmith will start or update the Live Activity for you.
+
+#### Scheduled metrics example
 
 <p align="center">
   <img src="https://cdn.activitysmith.com/features/metrics-live-activity-start.png" alt="Metrics stream example" width="680" />
@@ -63,81 +234,10 @@ want to store `live_activity_id` between runs.
             unit: "%"
 ```
 
-#### Segmented progress
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/update-live-activity.png" alt="Segmented progress stream example" width="680" />
-</p>
-
-```yaml
-- name: Stream nightly backup progress
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: stream_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    stream-key: nightly-backup
-    payload: |
-      content_state:
-        title: "Nightly Backup"
-        subtitle: "upload archive"
-        type: "segmented_progress"
-        number_of_steps: 3
-        current_step: 2
-```
-
-#### Progress
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/progress-live-activity.png" alt="Progress stream example" width="680" />
-</p>
-
-```yaml
-- name: Stream search reindex progress
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: stream_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    stream-key: search-reindex
-    payload: |
-      content_state:
-        title: "Search Reindex"
-        subtitle: "catalog-v2"
-        type: "progress"
-        percentage: 42
-```
-
-Run `stream_live_activity` again with the same `stream-key` whenever the state
-changes.
-
-#### End a stream
-
-Use this when the tracked process is finished and you no longer want the Live
-Activity on devices. `payload` is optional here; include it if you want to end
-the stream with a final state.
-
-```yaml
-- name: End server health stream
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: end_live_activity_stream
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    stream-key: prod-web-1
-    payload: |
-      content_state:
-        title: "Server Health"
-        subtitle: "prod-web-1"
-        type: "metrics"
-        metrics:
-          - label: "CPU"
-            value: 7
-            unit: "%"
-          - label: "MEM"
-            value: 38
-            unit: "%"
-```
-
-If you later send another `stream_live_activity` request with the same
-`stream-key`, ActivitySmith starts a new Live Activity for that stream again.
+Use `end_live_activity_stream` when the tracked thing is finished and you want
+the Live Activity dismissed. `payload` is optional there. If you later send
+another `stream_live_activity` request with the same `stream-key`,
+ActivitySmith starts a new Live Activity for that stream again.
 
 Stream responses include an `operation` field, also exposed as
 `steps.<id>.outputs.operation`:
@@ -148,310 +248,6 @@ Stream responses include an `operation` field, also exposed as
 - `noop`: the incoming state matched the current state, so no update was sent
 - `paused`: the stream is paused, so no Live Activity was started or updated
 - `ended`: returned by `end_live_activity_stream` after the stream is ended
-
-### Advanced: Manual lifecycle control
-
-Use these actions when you want to manage the Live Activity lifecycle yourself.
-
-#### Shared flow
-
-1. Run `start_live_activity`.
-2. Save the returned `live_activity_id`.
-3. Run `update_live_activity` as progress changes.
-4. Run `end_live_activity` when the work is finished.
-
-### Metrics Type
-
-Use `metrics` when you want to keep a small set of live stats visible, such as
-server health, queue pressure, or database load.
-
-#### Start
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-start.png" alt="Metrics start example" width="680" />
-</p>
-
-```yaml
-- name: Start metrics Live Activity
-  id: start_activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: start_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    payload: |
-      content_state:
-        title: "Server Health"
-        subtitle: "prod-web-1"
-        type: "metrics"
-        metrics:
-          - label: "CPU"
-            value: 9
-            unit: "%"
-          - label: "MEM"
-            value: 45
-            unit: "%"
-```
-
-#### Update
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-update.png" alt="Metrics update example" width="680" />
-</p>
-
-```yaml
-- name: Update metrics Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: update_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
-    payload: |
-      content_state:
-        title: "Server Health"
-        subtitle: "prod-web-1"
-        type: "metrics"
-        metrics:
-          - label: "CPU"
-            value: 76
-            unit: "%"
-          - label: "MEM"
-            value: 52
-            unit: "%"
-```
-
-#### End
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-end.png" alt="Metrics end example" width="680" />
-</p>
-
-```yaml
-- name: End metrics Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: end_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
-    payload: |
-      content_state:
-        title: "Server Health"
-        subtitle: "prod-web-1"
-        type: "metrics"
-        metrics:
-          - label: "CPU"
-            value: 7
-            unit: "%"
-          - label: "MEM"
-            value: 38
-            unit: "%"
-        auto_dismiss_minutes: 2
-```
-
-### Segmented Progress Type
-
-Use `segmented_progress` when progress is easier to follow as steps instead of a
-raw percentage. It fits deployments, backups, ETL pipelines, and checklists
-where "step 2 of 3" is more useful than "67%". `number_of_steps` is dynamic, so
-you can increase or decrease it later if the workflow changes.
-
-#### Start
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/start-live-activity.png" alt="Segmented progress start example" width="680" />
-</p>
-
-```yaml
-- name: Start segmented progress Live Activity
-  id: start_activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: start_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    payload: |
-      content_state:
-        title: "Nightly database backup"
-        subtitle: "create snapshot"
-        number_of_steps: 3
-        current_step: 1
-        type: "segmented_progress"
-        color: "yellow"
-```
-
-#### Update
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/update-live-activity.png" alt="Segmented progress update example" width="680" />
-</p>
-
-```yaml
-- name: Update segmented progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: update_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
-    payload: |
-      content_state:
-        title: "Nightly database backup"
-        subtitle: "upload archive"
-        number_of_steps: 3
-        current_step: 2
-        color: "yellow"
-```
-
-#### End
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/end-live-activity.png" alt="Segmented progress end example" width="680" />
-</p>
-
-```yaml
-- name: End segmented progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: end_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
-    payload: |
-      content_state:
-        title: "Nightly database backup"
-        subtitle: "verify restore"
-        number_of_steps: 3
-        current_step: 3
-        auto_dismiss_minutes: 2
-```
-
-### Progress Type
-
-Use `progress` when the state is naturally continuous. It fits charging,
-downloads, sync jobs, uploads, timers, and any flow where a percentage or
-numeric range is clearer than step counts.
-
-#### Start
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/progress-live-activity-start.png" alt="Progress start example" width="680" />
-</p>
-
-```yaml
-- name: Start progress Live Activity
-  id: start_activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: start_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    payload: |
-      content_state:
-        title: "EV Charging"
-        subtitle: "Added 30 mi range"
-        type: "progress"
-        percentage: 15
-```
-
-#### Update
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/progress-live-activity-update.png" alt="Progress update example" width="680" />
-</p>
-
-```yaml
-- name: Update progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: update_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
-    payload: |
-      content_state:
-        title: "EV Charging"
-        subtitle: "Added 120 mi range"
-        percentage: 60
-```
-
-#### End
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/progress-live-activity-end.png" alt="Progress end example" width="680" />
-</p>
-
-```yaml
-- name: End progress Live Activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: end_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
-    payload: |
-      content_state:
-        title: "EV Charging"
-        subtitle: "Added 200 mi range"
-        percentage: 100
-        auto_dismiss_minutes: 2
-```
-
-### Live Activity Action
-
-Just like Actionable Push Notifications, Live Activities can have a button that opens provided URL in a browser or triggers a webhook. Webhooks are executed by the ActivitySmith backend.
-
-#### Open URL action
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-action.png" alt="Metrics Live Activity with action" width="680" />
-</p>
-
-```yaml
-- name: Start Live Activity with open URL action
-  id: start_activity
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: start_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    payload: |
-      content_state:
-        title: "Server Health"
-        subtitle: "prod-web-1"
-        type: "metrics"
-        metrics:
-          - label: "CPU"
-            value: 76
-            unit: "%"
-          - label: "MEM"
-            value: 52
-            unit: "%"
-      action:
-        title: "Open Dashboard"
-        type: "open_url"
-        url: "https://ops.example.com/servers/prod-web-1"
-```
-
-#### Webhook action
-
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/live-activity-with-action.png?v=20260319-1" alt="Live Activity with action" width="680" />
-</p>
-
-```yaml
-- name: Update Live Activity with webhook action
-  uses: ActivitySmithHQ/activitysmith-github-action@v1
-  with:
-    action: update_live_activity
-    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
-    payload: |
-      content_state:
-        title: "Reindexing product search"
-        subtitle: "Shard 7 of 12"
-        number_of_steps: 12
-        current_step: 7
-      action:
-        title: "Pause Reindex"
-        type: "webhook"
-        url: "https://ops.example.com/hooks/search/reindex/pause"
-        method: "POST"
-        body:
-          job_id: "reindex-2026-03-19"
-          requested_by: "activitysmith-github-action"
-```
 
 ## Push Notifications
 
