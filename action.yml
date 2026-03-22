@@ -1,10 +1,10 @@
 name: ActivitySmith.com
 author: "ActivitySmithHQ"
-description: "Send push notifications with optional rich media and actions, and start, update, or end segmented_progress or progress Live Activities with optional actions directly from your workflows"
+description: "Send push notifications with optional rich media and actions, and trigger stateless or manual Live Activity workflows directly from your GitHub workflows"
 
 inputs:
   action:
-    description: "Choose the action to perform: start_live_activity, update_live_activity, end_live_activity, send_push_notification."
+    description: "Choose the action to perform: send_push_notification, stream_live_activity, end_live_activity_stream, start_live_activity, update_live_activity, or end_live_activity."
     required: true
   api-key:
     description: "The authentication value used with the ActivitySmith API."
@@ -16,11 +16,14 @@ inputs:
   live-activity-id:
     description: "ID of the live activity (required for update/ending)"
     required: false
+  stream-key:
+    description: "Stable stream key for stream_live_activity and end_live_activity_stream."
+    required: false
   payload:
-    description: "Request body content using JSON or YAML. Push notifications support media, redirection, and actions. Live Activities support segmented_progress and progress payloads plus an optional action button."
+    description: "Request body content using JSON or YAML. Push notifications support media, redirection, and actions. Live Activities support metrics, segmented_progress, and progress payloads plus one optional action button. For end_live_activity_stream, payload is optional."
     required: false
   channels:
-    description: "Optional comma-separated channel names to target for send_push_notification and start_live_activity."
+    description: "Optional comma-separated channel names to target for send_push_notification, stream_live_activity, and start_live_activity."
     required: false
   payload-delimiter:
     description: "Field separator for nested attributes in the input payload."
@@ -37,7 +40,9 @@ outputs:
   time:
     description: "The Unix epoch time that the step completed."
   live_activity_id:
-    description: "The live activity ID returned with start_live_activity."
+    description: "The live activity ID returned with start_live_activity or stream_live_activity."
+  operation:
+    description: "The operation returned by stream actions, such as started, updated, rotated, noop, paused, or ended."
 
 runs:
   using: node20

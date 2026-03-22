@@ -7250,7 +7250,7 @@ const runtime = __nccwpck_require__(6403);
  */
 class LiveActivitiesApi extends runtime.BaseAPI {
     /**
-     * Ends a Live Activity and archives its lifecycle. For segmented_progress activities, you can send the latest number_of_steps here if the workflow changed after start.
+     * Ends a Live Activity and archives its lifecycle. Supports segmented_progress, progress, metrics, and the legacy counter/timer/countdown step-based activity types. For segmented_progress activities, you can send the latest number_of_steps here if the workflow changed after start.
      * End a Live Activity
      */
     async endLiveActivityRaw(requestParameters, initOverrides) {
@@ -7277,7 +7277,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return new runtime.JSONApiResponse(response);
     }
     /**
-     * Ends a Live Activity and archives its lifecycle. For segmented_progress activities, you can send the latest number_of_steps here if the workflow changed after start.
+     * Ends a Live Activity and archives its lifecycle. Supports segmented_progress, progress, metrics, and the legacy counter/timer/countdown step-based activity types. For segmented_progress activities, you can send the latest number_of_steps here if the workflow changed after start.
      * End a Live Activity
      */
     async endLiveActivity(requestParameters, initOverrides) {
@@ -7285,7 +7285,80 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return await response.value();
     }
     /**
-     * Starts a Live Activity on devices matched by API key scope and optional target channels. For segmented_progress activities, number_of_steps can be changed later during update or end calls if the workflow changes.
+     * Use this endpoint when the process you are tracking is finished and you no longer want the Live Activity on your devices. ActivitySmith ends the current Live Activity for this stream and dismisses it from devices. If you need direct lifecycle control, use /live-activity/start, /live-activity/update, and /live-activity/end instead.
+     * End a stream
+     */
+    async endLiveActivityStreamRaw(requestParameters, initOverrides) {
+        if (requestParameters['streamKey'] == null) {
+            throw new runtime.RequiredError('streamKey', 'Required parameter "streamKey" was null or undefined when calling endLiveActivityStream().');
+        }
+        const queryParameters = {};
+        const headerParameters = {};
+        headerParameters['Content-Type'] = 'application/json';
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("apiKeyAuth", []);
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/live-activity/stream/{stream_key}`.replace(`{${"stream_key"}}`, encodeURIComponent(String(requestParameters['streamKey']))),
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+            body: requestParameters['liveActivityStreamDeleteRequest'],
+        }, initOverrides);
+        return new runtime.JSONApiResponse(response);
+    }
+    /**
+     * Use this endpoint when the process you are tracking is finished and you no longer want the Live Activity on your devices. ActivitySmith ends the current Live Activity for this stream and dismisses it from devices. If you need direct lifecycle control, use /live-activity/start, /live-activity/update, and /live-activity/end instead.
+     * End a stream
+     */
+    async endLiveActivityStream(requestParameters, initOverrides) {
+        const response = await this.endLiveActivityStreamRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+    /**
+     * Use this endpoint when you want the easiest, stateless way to trigger Live Activities. You do not need to store activity_id or manage the Live Activity lifecycle yourself. Send the latest state for a stable stream_key and ActivitySmith will handle the rest for you: if there is no Live Activity yet, it starts one; if there is already one for this stream, it updates it. If you need direct lifecycle control, use /live-activity/start, /live-activity/update, and /live-activity/end instead.
+     * Send a stream update
+     */
+    async reconcileLiveActivityStreamRaw(requestParameters, initOverrides) {
+        if (requestParameters['streamKey'] == null) {
+            throw new runtime.RequiredError('streamKey', 'Required parameter "streamKey" was null or undefined when calling reconcileLiveActivityStream().');
+        }
+        if (requestParameters['liveActivityStreamRequest'] == null) {
+            throw new runtime.RequiredError('liveActivityStreamRequest', 'Required parameter "liveActivityStreamRequest" was null or undefined when calling reconcileLiveActivityStream().');
+        }
+        const queryParameters = {};
+        const headerParameters = {};
+        headerParameters['Content-Type'] = 'application/json';
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("apiKeyAuth", []);
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+        const response = await this.request({
+            path: `/live-activity/stream/{stream_key}`.replace(`{${"stream_key"}}`, encodeURIComponent(String(requestParameters['streamKey']))),
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: requestParameters['liveActivityStreamRequest'],
+        }, initOverrides);
+        return new runtime.JSONApiResponse(response);
+    }
+    /**
+     * Use this endpoint when you want the easiest, stateless way to trigger Live Activities. You do not need to store activity_id or manage the Live Activity lifecycle yourself. Send the latest state for a stable stream_key and ActivitySmith will handle the rest for you: if there is no Live Activity yet, it starts one; if there is already one for this stream, it updates it. If you need direct lifecycle control, use /live-activity/start, /live-activity/update, and /live-activity/end instead.
+     * Send a stream update
+     */
+    async reconcileLiveActivityStream(requestParameters, initOverrides) {
+        const response = await this.reconcileLiveActivityStreamRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+    /**
+     * Starts a Live Activity on devices matched by API key scope and optional target channels. Supports segmented_progress, progress, metrics, and the legacy counter/timer/countdown step-based activity types. For segmented_progress activities, number_of_steps can be changed later during update or end calls if the workflow changes.
      * Start a Live Activity
      */
     async startLiveActivityRaw(requestParameters, initOverrides) {
@@ -7312,7 +7385,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return new runtime.JSONApiResponse(response);
     }
     /**
-     * Starts a Live Activity on devices matched by API key scope and optional target channels. For segmented_progress activities, number_of_steps can be changed later during update or end calls if the workflow changes.
+     * Starts a Live Activity on devices matched by API key scope and optional target channels. Supports segmented_progress, progress, metrics, and the legacy counter/timer/countdown step-based activity types. For segmented_progress activities, number_of_steps can be changed later during update or end calls if the workflow changes.
      * Start a Live Activity
      */
     async startLiveActivity(requestParameters, initOverrides) {
@@ -7320,7 +7393,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return await response.value();
     }
     /**
-     * Updates an existing Live Activity. If the per-activity token is not registered yet, the update is queued. For segmented_progress activities, you can increase or decrease number_of_steps here as the workflow changes.
+     * Updates an existing Live Activity. If the per-activity token is not registered yet, the update is queued. Supports segmented_progress, progress, metrics, and the legacy counter/timer/countdown step-based activity types. For segmented_progress activities, you can increase or decrease number_of_steps here as the workflow changes.
      * Update a Live Activity
      */
     async updateLiveActivityRaw(requestParameters, initOverrides) {
@@ -7347,7 +7420,7 @@ class LiveActivitiesApi extends runtime.BaseAPI {
         return new runtime.JSONApiResponse(response);
     }
     /**
-     * Updates an existing Live Activity. If the per-activity token is not registered yet, the update is queued. For segmented_progress activities, you can increase or decrease number_of_steps here as the workflow changes.
+     * Updates an existing Live Activity. If the per-activity token is not registered yet, the update is queued. Supports segmented_progress, progress, metrics, and the legacy counter/timer/countdown step-based activity types. For segmented_progress activities, you can increase or decrease number_of_steps here as the workflow changes.
      * Update a Live Activity
      */
     async updateLiveActivity(requestParameters, initOverrides) {
@@ -7485,13 +7558,17 @@ __exportStar(__nccwpck_require__(7046), exports);
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.PushNotificationWebhookMethod = exports.PushNotificationActionType = exports.LiveActivityWebhookMethod = exports.LiveActivityActionType = exports.ContentStateUpdateStepColorEnum = exports.ContentStateUpdateColorEnum = exports.ContentStateUpdateTypeEnum = exports.ContentStateStartStepColorEnum = exports.ContentStateStartColorEnum = exports.ContentStateStartTypeEnum = exports.ContentStateEndStepColorEnum = exports.ContentStateEndColorEnum = exports.ContentStateEndTypeEnum = void 0;
+exports.StreamContentStateStepColorsEnum = exports.StreamContentStateStepColorEnum = exports.StreamContentStateColorEnum = exports.StreamContentStateTypeEnum = exports.PushNotificationWebhookMethod = exports.PushNotificationActionType = exports.LiveActivityWebhookMethod = exports.LiveActivityStreamPutResponseOperationEnum = exports.LiveActivityStreamDeleteResponseOperationEnum = exports.LiveActivityActionType = exports.ContentStateUpdateStepColorsEnum = exports.ContentStateUpdateStepColorEnum = exports.ContentStateUpdateColorEnum = exports.ContentStateUpdateTypeEnum = exports.ContentStateStartStepColorsEnum = exports.ContentStateStartStepColorEnum = exports.ContentStateStartColorEnum = exports.ContentStateStartTypeEnum = exports.ContentStateEndStepColorsEnum = exports.ContentStateEndStepColorEnum = exports.ContentStateEndColorEnum = exports.ContentStateEndTypeEnum = void 0;
 /**
  * @export
  */
 exports.ContentStateEndTypeEnum = {
     SegmentedProgress: 'segmented_progress',
-    Progress: 'progress'
+    Progress: 'progress',
+    Metrics: 'metrics',
+    Counter: 'counter',
+    Timer: 'timer',
+    Countdown: 'countdown'
 };
 /**
  * @export
@@ -7524,9 +7601,27 @@ exports.ContentStateEndStepColorEnum = {
 /**
  * @export
  */
+exports.ContentStateEndStepColorsEnum = {
+    Lime: 'lime',
+    Green: 'green',
+    Cyan: 'cyan',
+    Blue: 'blue',
+    Purple: 'purple',
+    Magenta: 'magenta',
+    Red: 'red',
+    Orange: 'orange',
+    Yellow: 'yellow'
+};
+/**
+ * @export
+ */
 exports.ContentStateStartTypeEnum = {
     SegmentedProgress: 'segmented_progress',
-    Progress: 'progress'
+    Progress: 'progress',
+    Metrics: 'metrics',
+    Counter: 'counter',
+    Timer: 'timer',
+    Countdown: 'countdown'
 };
 /**
  * @export
@@ -7559,9 +7654,27 @@ exports.ContentStateStartStepColorEnum = {
 /**
  * @export
  */
+exports.ContentStateStartStepColorsEnum = {
+    Lime: 'lime',
+    Green: 'green',
+    Cyan: 'cyan',
+    Blue: 'blue',
+    Purple: 'purple',
+    Magenta: 'magenta',
+    Red: 'red',
+    Orange: 'orange',
+    Yellow: 'yellow'
+};
+/**
+ * @export
+ */
 exports.ContentStateUpdateTypeEnum = {
     SegmentedProgress: 'segmented_progress',
-    Progress: 'progress'
+    Progress: 'progress',
+    Metrics: 'metrics',
+    Counter: 'counter',
+    Timer: 'timer',
+    Countdown: 'countdown'
 };
 /**
  * @export
@@ -7592,12 +7705,42 @@ exports.ContentStateUpdateStepColorEnum = {
     Yellow: 'yellow'
 };
 /**
+ * @export
+ */
+exports.ContentStateUpdateStepColorsEnum = {
+    Lime: 'lime',
+    Green: 'green',
+    Cyan: 'cyan',
+    Blue: 'blue',
+    Purple: 'purple',
+    Magenta: 'magenta',
+    Red: 'red',
+    Orange: 'orange',
+    Yellow: 'yellow'
+};
+/**
  *
  * @export
  */
 exports.LiveActivityActionType = {
     OpenUrl: 'open_url',
     Webhook: 'webhook'
+};
+/**
+ * @export
+ */
+exports.LiveActivityStreamDeleteResponseOperationEnum = {
+    Ended: 'ended'
+};
+/**
+ * @export
+ */
+exports.LiveActivityStreamPutResponseOperationEnum = {
+    Started: 'started',
+    Updated: 'updated',
+    Rotated: 'rotated',
+    Noop: 'noop',
+    Paused: 'paused'
 };
 /**
  *
@@ -7622,6 +7765,59 @@ exports.PushNotificationActionType = {
 exports.PushNotificationWebhookMethod = {
     Get: 'GET',
     Post: 'POST'
+};
+/**
+ * @export
+ */
+exports.StreamContentStateTypeEnum = {
+    SegmentedProgress: 'segmented_progress',
+    Progress: 'progress',
+    Metrics: 'metrics',
+    Counter: 'counter',
+    Timer: 'timer',
+    Countdown: 'countdown'
+};
+/**
+ * @export
+ */
+exports.StreamContentStateColorEnum = {
+    Lime: 'lime',
+    Green: 'green',
+    Cyan: 'cyan',
+    Blue: 'blue',
+    Purple: 'purple',
+    Magenta: 'magenta',
+    Red: 'red',
+    Orange: 'orange',
+    Yellow: 'yellow'
+};
+/**
+ * @export
+ */
+exports.StreamContentStateStepColorEnum = {
+    Lime: 'lime',
+    Green: 'green',
+    Cyan: 'cyan',
+    Blue: 'blue',
+    Purple: 'purple',
+    Magenta: 'magenta',
+    Red: 'red',
+    Orange: 'orange',
+    Yellow: 'yellow'
+};
+/**
+ * @export
+ */
+exports.StreamContentStateStepColorsEnum = {
+    Lime: 'lime',
+    Green: 'green',
+    Cyan: 'cyan',
+    Blue: 'blue',
+    Purple: 'purple',
+    Magenta: 'magenta',
+    Red: 'red',
+    Orange: 'orange',
+    Yellow: 'yellow'
 };
 
 
@@ -8028,6 +8224,18 @@ class LiveActivitiesResource {
     end(request, initOverrides) {
         return this.api.endLiveActivity({ liveActivityEndRequest: request }, initOverrides);
     }
+    stream(streamKey, request, initOverrides) {
+        return this.api.reconcileLiveActivityStream({
+            streamKey,
+            liveActivityStreamRequest: withTargetChannels(request),
+        }, initOverrides);
+    }
+    endStream(streamKey, request, initOverrides) {
+        if (request) {
+            return this.api.endLiveActivityStream({ streamKey, liveActivityStreamDeleteRequest: request }, initOverrides);
+        }
+        return this.api.endLiveActivityStream({ streamKey }, initOverrides);
+    }
     // Backward-compatible aliases.
     startLiveActivity(...args) {
         return this.api.startLiveActivity(...args);
@@ -8038,6 +8246,12 @@ class LiveActivitiesResource {
     endLiveActivity(...args) {
         return this.api.endLiveActivity(...args);
     }
+    reconcileLiveActivityStream(...args) {
+        return this.api.reconcileLiveActivityStream(...args);
+    }
+    endLiveActivityStream(...args) {
+        return this.api.endLiveActivityStream(...args);
+    }
     startLiveActivityRaw(...args) {
         return this.api.startLiveActivityRaw(...args);
     }
@@ -8046,6 +8260,12 @@ class LiveActivitiesResource {
     }
     endLiveActivityRaw(...args) {
         return this.api.endLiveActivityRaw(...args);
+    }
+    reconcileLiveActivityStreamRaw(...args) {
+        return this.api.reconcileLiveActivityStreamRaw(...args);
+    }
+    endLiveActivityStreamRaw(...args) {
+        return this.api.endLiveActivityStreamRaw(...args);
     }
 }
 exports.LiveActivitiesResource = LiveActivitiesResource;
@@ -32655,9 +32875,11 @@ __nccwpck_require__.d(__webpack_exports__, {
 ;// CONCATENATED MODULE: ./src/actionType.js
 const ActionType = {
   SendPushNotification: "send_push_notification",
+  StreamLiveActivity: "stream_live_activity",
   StartLiveActivity: "start_live_activity",
   UpdateLiveActivity: "update_live_activity",
   EndLiveActivity: "end_live_activity",
+  EndLiveActivityStream: "end_live_activity_stream",
 };
 
 ;// CONCATENATED MODULE: ./src/errors.js
@@ -32771,6 +32993,13 @@ class Client {
             pushNotificationRequest: this.withChannels(config.content.values, config.inputs.channels),
           });
           break;
+        case ActionType.StreamLiveActivity:
+          config.logger.info("Making ActivitySmith stream live activity request...");
+          response = await client.liveActivities.reconcileLiveActivityStreamRaw({
+            streamKey: config.inputs.streamKey,
+            liveActivityStreamRequest: this.withChannels(config.content.values, config.inputs.channels),
+          });
+          break;
         case ActionType.StartLiveActivity:
           config.logger.info("Making ActivitySmith start live activity request...");
           response = await client.liveActivities.startLiveActivityRaw({
@@ -32787,6 +33016,13 @@ class Client {
           config.logger.info("Making ActivitySmith end live activity request...");
           response = await client.liveActivities.endLiveActivityRaw({
             liveActivityEndRequest: config.content.values,
+          });
+          break;
+        case ActionType.EndLiveActivityStream:
+          config.logger.info("Making ActivitySmith end live activity stream request...");
+          response = await client.liveActivities.endLiveActivityStreamRaw({
+            streamKey: config.inputs.streamKey,
+            liveActivityStreamDeleteRequest: config.content.values,
           });
           break;
         default:
@@ -32809,6 +33045,11 @@ class Client {
       const liveActivityId = data?.activity_id ?? data?.activityId;
       if (typeof liveActivityId === "string" && liveActivityId.length > 0) {
         config.core.setOutput("live_activity_id", liveActivityId);
+      }
+
+      const operation = data?.operation;
+      if (typeof operation === "string" && operation.length > 0) {
+        config.core.setOutput("operation", operation);
       }
 
       config.core.debug(JSON.stringify(data));
@@ -36884,6 +37125,7 @@ var jsYaml = {
 
 
 
+
 /**
  * The parsed payload provided to the action and passed to the preferred method
  * of sending a payload.
@@ -36904,6 +37146,10 @@ class Content {
       case !!config.inputs.payloadFilePath:
         this.values = this.getContentPayloadFilePath(config);
         break;
+      case config.inputs.action === ActionType.EndLiveActivityStream:
+        config.core.debug("Missing payload for end_live_activity_stream so leaving request body empty.");
+        this.values = undefined;
+        break;
       default:
         config.core.debug("Missing payload so gathering inputs from action context.");
         this.values = github.context;
@@ -36912,7 +37158,7 @@ class Content {
     if (config.inputs.liveActivityId && this.values && typeof this.values === "object") {
       this.values.activity_id = config.inputs.liveActivityId;
     }
-    if (config.inputs.payloadDelimiter) {
+    if (config.inputs.payloadDelimiter && this.values && typeof this.values === "object") {
       this.values = flatten(this.values, {
         delimiter: config.inputs.payloadDelimiter,
       });
@@ -37058,7 +37304,8 @@ class Config {
    * @property {string?} apiKey - The authentication value used with the ActivitySmith API.
    * @property {boolean} errors - If the job should exit after errors or succeed.
    * @property {string?} liveActivityId - Id of live activity to update/end.
-   * @property {string[]} channels - Optional channels for send/start actions.
+   * @property {string?} streamKey - Stable stream key for stateless stream actions.
+   * @property {string[]} channels - Optional channels for send/stream/start actions.
    * @property {string?} payload - Request contents from the provided input.
    * @property {string?} payloadDelimiter - Separator for nested attributes.
    * @property {string?} payloadFilePath - Location of a JSON request payload.
@@ -37104,6 +37351,7 @@ class Config {
       apiKey: core.getInput("api-key"),
       errors: core.getBooleanInput("errors"),
       liveActivityId: core.getInput("live-activity-id"),
+      streamKey: core.getInput("stream-key"),
       channels: this.parseChannels(core.getInput("channels")),
       payload: core.getInput("payload"),
       payloadDelimiter: core.getInput("payload-delimiter"),
@@ -37145,6 +37393,13 @@ class Config {
         if (!this.inputs.liveActivityId) {
           throw new ActivitySmithError(core, "Missing input! A live activity id must be provided.");
         }
+        break;
+      case ActionType.StreamLiveActivity:
+      case ActionType.EndLiveActivityStream:
+        if (!this.inputs.streamKey) {
+          throw new ActivitySmithError(core, "Missing input! A stream key must be provided.");
+        }
+        break;
       default:
         break;
     }

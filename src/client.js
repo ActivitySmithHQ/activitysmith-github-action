@@ -73,6 +73,13 @@ export default class Client {
             pushNotificationRequest: this.withChannels(config.content.values, config.inputs.channels),
           });
           break;
+        case ActionType.StreamLiveActivity:
+          config.logger.info("Making ActivitySmith stream live activity request...");
+          response = await client.liveActivities.reconcileLiveActivityStreamRaw({
+            streamKey: config.inputs.streamKey,
+            liveActivityStreamRequest: this.withChannels(config.content.values, config.inputs.channels),
+          });
+          break;
         case ActionType.StartLiveActivity:
           config.logger.info("Making ActivitySmith start live activity request...");
           response = await client.liveActivities.startLiveActivityRaw({
@@ -89,6 +96,13 @@ export default class Client {
           config.logger.info("Making ActivitySmith end live activity request...");
           response = await client.liveActivities.endLiveActivityRaw({
             liveActivityEndRequest: config.content.values,
+          });
+          break;
+        case ActionType.EndLiveActivityStream:
+          config.logger.info("Making ActivitySmith end live activity stream request...");
+          response = await client.liveActivities.endLiveActivityStreamRaw({
+            streamKey: config.inputs.streamKey,
+            liveActivityStreamDeleteRequest: config.content.values,
           });
           break;
         default:
@@ -111,6 +125,11 @@ export default class Client {
       const liveActivityId = data?.activity_id ?? data?.activityId;
       if (typeof liveActivityId === "string" && liveActivityId.length > 0) {
         config.core.setOutput("live_activity_id", liveActivityId);
+      }
+
+      const operation = data?.operation;
+      if (typeof operation === "string" && operation.length > 0) {
+        config.core.setOutput("operation", operation);
       }
 
       config.core.debug(JSON.stringify(data));

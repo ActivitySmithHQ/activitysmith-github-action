@@ -4,6 +4,7 @@ import github from "@actions/github";
 import { flatten } from "flat";
 import yaml from "js-yaml";
 import ActivitySmithError from "./errors.js";
+import { ActionType } from "./actionType.js";
 
 /**
  * The parsed payload provided to the action and passed to the preferred method
@@ -25,6 +26,10 @@ export default class Content {
       case !!config.inputs.payloadFilePath:
         this.values = this.getContentPayloadFilePath(config);
         break;
+      case config.inputs.action === ActionType.EndLiveActivityStream:
+        config.core.debug("Missing payload for end_live_activity_stream so leaving request body empty.");
+        this.values = undefined;
+        break;
       default:
         config.core.debug("Missing payload so gathering inputs from action context.");
         this.values = github.context;
@@ -33,7 +38,7 @@ export default class Content {
     if (config.inputs.liveActivityId && this.values && typeof this.values === "object") {
       this.values.activity_id = config.inputs.liveActivityId;
     }
-    if (config.inputs.payloadDelimiter) {
+    if (config.inputs.payloadDelimiter && this.values && typeof this.values === "object") {
       this.values = flatten(this.values, {
         delimiter: config.inputs.payloadDelimiter,
       });

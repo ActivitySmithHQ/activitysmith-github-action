@@ -1,24 +1,258 @@
 # ActivitySmith GitHub Action
 
-The official ActivitySmith GitHub Action. Send [Push Notifications](#push-notifications) with optional rich media, and start, update, or end [Live Activities](#live-activities) directly from your workflows.
+The official ActivitySmith GitHub Action. Send [Push Notifications](#push-notifications) with optional rich media, and trigger stateless or manual [Live Activities](#live-activities) directly from your workflows.
 
 ## Live Activities
 
-Live Activities come in two UI types, but the lifecycle stays the same:
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-action.png" alt="Live Activities example" width="680" />
+</p>
 
-1. Start the activity.
+ActivitySmith supports two ways to drive Live Activities from GitHub Actions:
+
+- Recommended: stream updates with `action: stream_live_activity`
+- Advanced: manual lifecycle control with `start_live_activity`, `update_live_activity`, and `end_live_activity`
+
+Use stream updates when you want the easiest, stateless flow. You do not need to
+store `live_activity_id` or manage lifecycle state yourself. Send the latest
+state for a stable `stream-key` and ActivitySmith will start or update the Live
+Activity for you. When the tracked process is over, call
+`action: end_live_activity_stream`.
+
+Use the manual lifecycle actions when you need direct control over a specific
+Live Activity instance.
+
+Live Activity UI types:
+
+- `metrics`: best for live operational stats like server CPU and memory, queue depth, or replica lag
+- `segmented_progress`: best for step-based workflows like deployments, backups, and ETL pipelines
+- `progress`: best for continuous jobs like uploads, reindexes, and long-running migrations tracked as a percentage
+
+### Recommended: Stream updates
+
+Use a stable `stream-key` to identify the system or workflow you are tracking,
+such as a server, deployment, build pipeline, scheduled workflow, or charging
+session. This is especially useful for scheduled workflows where you do not
+want to store `live_activity_id` between runs.
+
+#### Metrics
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-start.png" alt="Metrics stream example" width="680" />
+</p>
+
+```yaml
+- name: Stream server health
+  id: stream_activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: stream_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    stream-key: prod-web-1
+    payload: |
+      content_state:
+        title: "Server Health"
+        subtitle: "prod-web-1"
+        type: "metrics"
+        metrics:
+          - label: "CPU"
+            value: 9
+            unit: "%"
+          - label: "MEM"
+            value: 45
+            unit: "%"
+```
+
+#### Segmented progress
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/update-live-activity.png" alt="Segmented progress stream example" width="680" />
+</p>
+
+```yaml
+- name: Stream nightly backup progress
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: stream_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    stream-key: nightly-backup
+    payload: |
+      content_state:
+        title: "Nightly Backup"
+        subtitle: "upload archive"
+        type: "segmented_progress"
+        number_of_steps: 3
+        current_step: 2
+```
+
+#### Progress
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/progress-live-activity.png" alt="Progress stream example" width="680" />
+</p>
+
+```yaml
+- name: Stream search reindex progress
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: stream_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    stream-key: search-reindex
+    payload: |
+      content_state:
+        title: "Search Reindex"
+        subtitle: "catalog-v2"
+        type: "progress"
+        percentage: 42
+```
+
+Run `stream_live_activity` again with the same `stream-key` whenever the state
+changes.
+
+#### End a stream
+
+Use this when the tracked process is finished and you no longer want the Live
+Activity on devices. `payload` is optional here; include it if you want to end
+the stream with a final state.
+
+```yaml
+- name: End server health stream
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: end_live_activity_stream
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    stream-key: prod-web-1
+    payload: |
+      content_state:
+        title: "Server Health"
+        subtitle: "prod-web-1"
+        type: "metrics"
+        metrics:
+          - label: "CPU"
+            value: 7
+            unit: "%"
+          - label: "MEM"
+            value: 38
+            unit: "%"
+```
+
+If you later send another `stream_live_activity` request with the same
+`stream-key`, ActivitySmith starts a new Live Activity for that stream again.
+
+Stream responses include an `operation` field, also exposed as
+`steps.<id>.outputs.operation`:
+
+- `started`: ActivitySmith started a new Live Activity for this `stream-key`
+- `updated`: ActivitySmith updated the current Live Activity
+- `rotated`: ActivitySmith ended the previous Live Activity and started a new one
+- `noop`: the incoming state matched the current state, so no update was sent
+- `paused`: the stream is paused, so no Live Activity was started or updated
+- `ended`: returned by `end_live_activity_stream` after the stream is ended
+
+### Advanced: Manual lifecycle control
+
+Use these actions when you want to manage the Live Activity lifecycle yourself.
+
+#### Shared flow
+
+1. Run `start_live_activity`.
 2. Save the returned `live_activity_id`.
-3. Update it as progress changes.
-4. End it when the work is finished.
+3. Run `update_live_activity` as progress changes.
+4. Run `end_live_activity` when the work is finished.
 
-- `segmented_progress`: best for jobs tracked in steps
-- `progress`: best for jobs tracked as a percentage or numeric range
+### Metrics Type
 
-### Segmented Progress
+Use `metrics` when you want to keep a small set of live stats visible, such as
+server health, queue pressure, or database load.
 
-Use `segmented_progress` when progress is easier to follow as steps instead of a raw percentage. It fits deployments, backups, ETL pipelines, and checklists.
+#### Start
 
-`number_of_steps` is dynamic, so you can increase or decrease it later if the workflow changes.
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-start.png" alt="Metrics start example" width="680" />
+</p>
+
+```yaml
+- name: Start metrics Live Activity
+  id: start_activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: start_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    payload: |
+      content_state:
+        title: "Server Health"
+        subtitle: "prod-web-1"
+        type: "metrics"
+        metrics:
+          - label: "CPU"
+            value: 9
+            unit: "%"
+          - label: "MEM"
+            value: 45
+            unit: "%"
+```
+
+#### Update
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-update.png" alt="Metrics update example" width="680" />
+</p>
+
+```yaml
+- name: Update metrics Live Activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: update_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    payload: |
+      content_state:
+        title: "Server Health"
+        subtitle: "prod-web-1"
+        type: "metrics"
+        metrics:
+          - label: "CPU"
+            value: 76
+            unit: "%"
+          - label: "MEM"
+            value: 52
+            unit: "%"
+```
+
+#### End
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-end.png" alt="Metrics end example" width="680" />
+</p>
+
+```yaml
+- name: End metrics Live Activity
+  uses: ActivitySmithHQ/activitysmith-github-action@v1
+  with:
+    action: end_live_activity
+    api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    payload: |
+      content_state:
+        title: "Server Health"
+        subtitle: "prod-web-1"
+        type: "metrics"
+        metrics:
+          - label: "CPU"
+            value: 7
+            unit: "%"
+          - label: "MEM"
+            value: 38
+            unit: "%"
+        auto_dismiss_minutes: 2
+```
+
+### Segmented Progress Type
+
+Use `segmented_progress` when progress is easier to follow as steps instead of a
+raw percentage. It fits deployments, backups, ETL pipelines, and checklists
+where "step 2 of 3" is more useful than "67%". `number_of_steps` is dynamic, so
+you can increase or decrease it later if the workflow changes.
 
 #### Start
 
@@ -60,7 +294,7 @@ Use `segmented_progress` when progress is easier to follow as steps instead of a
       content_state:
         title: "Nightly database backup"
         subtitle: "upload archive"
-        number_of_steps: 4
+        number_of_steps: 3
         current_step: 2
         color: "yellow"
 ```
@@ -81,17 +315,17 @@ Use `segmented_progress` when progress is easier to follow as steps instead of a
     payload: |
       content_state:
         title: "Nightly database backup"
-        subtitle: "done"
-        number_of_steps: 4
-        current_step: 4
+        subtitle: "verify restore"
+        number_of_steps: 3
+        current_step: 3
         auto_dismiss_minutes: 2
 ```
 
-### Progress
+### Progress Type
 
-Use `progress` when the state is naturally continuous. It fits charging, downloads, sync jobs, uploads, timers, and any flow where a percentage or numeric range is clearer than step counts.
-
-Send either `percentage` or `value` with `upper_limit`.
+Use `progress` when the state is naturally continuous. It fits charging,
+downloads, sync jobs, uploads, timers, and any flow where a percentage or
+numeric range is clearer than step counts.
 
 #### Start
 
@@ -112,7 +346,6 @@ Send either `percentage` or `value` with `upper_limit`.
         subtitle: "Added 30 mi range"
         type: "progress"
         percentage: 15
-        color: "lime"
 ```
 
 #### Update
@@ -160,11 +393,11 @@ Send either `percentage` or `value` with `upper_limit`.
 
 Just like Actionable Push Notifications, Live Activities can have a button that opens provided URL in a browser or triggers a webhook. Webhooks are executed by the ActivitySmith backend.
 
-<p align="center">
-  <img src="https://cdn.activitysmith.com/features/live-activity-with-action.png?v=20260319-1" alt="Live Activity with action" width="680" />
-</p>
-
 #### Open URL action
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/metrics-live-activity-action.png" alt="Metrics Live Activity with action" width="680" />
+</p>
 
 ```yaml
 - name: Start Live Activity with open URL action
@@ -175,18 +408,27 @@ Just like Actionable Push Notifications, Live Activities can have a button that 
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
     payload: |
       content_state:
-        title: "Deploying payments-api"
-        subtitle: "Running database migrations"
-        number_of_steps: 5
-        current_step: 3
-        type: "segmented_progress"
+        title: "Server Health"
+        subtitle: "prod-web-1"
+        type: "metrics"
+        metrics:
+          - label: "CPU"
+            value: 76
+            unit: "%"
+          - label: "MEM"
+            value: 52
+            unit: "%"
       action:
-        title: "Open Workflow"
+        title: "Open Dashboard"
         type: "open_url"
-        url: "https://github.com/acme/payments-api/actions/runs/1234567890"
+        url: "https://ops.example.com/servers/prod-web-1"
 ```
 
 #### Webhook action
+
+<p align="center">
+  <img src="https://cdn.activitysmith.com/features/live-activity-with-action.png?v=20260319-1" alt="Live Activity with action" width="680" />
+</p>
 
 ```yaml
 - name: Update Live Activity with webhook action
@@ -303,12 +545,13 @@ Add redirection when tapping the notification should open a specific URL, and us
 
 ## Inputs
 
-- `action` (required): `send_push_notification`, `start_live_activity`, `update_live_activity`, or `end_live_activity`
+- `action` (required): `send_push_notification`, `stream_live_activity`, `end_live_activity_stream`, `start_live_activity`, `update_live_activity`, or `end_live_activity`
 - `api-key` (required): ActivitySmith API key
-- `payload` (optional): inline JSON or YAML payload. Push notifications support optional `media`, `redirection`, and up to 4 `actions`. Live Activities support segmented/progress `content_state` plus one optional `action`.
+- `payload` (optional): inline JSON or YAML payload. Push notifications support optional `media`, `redirection`, and up to 4 `actions`. Live Activities support `metrics`, `segmented_progress`, or `progress` `content_state` plus one optional `action`. For `end_live_activity_stream`, `payload` is optional.
 - `payload-file-path` (optional): path to a `.json`, `.yml`, or `.yaml` payload file
 - `live-activity-id` (required for `update_live_activity` and `end_live_activity`): Live Activity ID
-- `channels` (optional): comma-separated channels for `send_push_notification` and `start_live_activity`
+- `stream-key` (required for `stream_live_activity` and `end_live_activity_stream`): stable key used to identify the tracked stream
+- `channels` (optional): comma-separated channels for `send_push_notification`, `stream_live_activity`, and `start_live_activity`
 - `errors` (optional, default `false`): set to `true` to fail the step when the API request fails
 - `payload-delimiter` (optional): advanced override for nested payload flattening
 
@@ -317,7 +560,8 @@ Add redirection when tapping the notification should open a specific URL, and us
 - `ok`: `true` when the request succeeds, otherwise `false`
 - `response`: JSON stringified API response or error response
 - `time`: Unix epoch time (seconds) when the step finished
-- `live_activity_id`: returned by `start_live_activity`
+- `live_activity_id`: returned when a Live Activity start or stream request returns an activity ID
+- `operation`: returned by stream actions, such as `started`, `updated`, `rotated`, `noop`, `paused`, or `ended`
 
 ## Notes
 
@@ -325,7 +569,8 @@ Add redirection when tapping the notification should open a specific URL, and us
 - Both inline payloads and payload files can be JSON or YAML.
 - Live Activity payloads go under `content_state` and should use snake_case keys.
 - `live-activity-id` is required for update and end actions.
+- `stream-key` is required for stream start/update and stream end actions.
 - Push notification payloads support optional `media`, `redirection`, and up to 4 `actions`.
 - Live Activity payloads support one optional `action`.
 - `media` can be combined with `redirection`, but not with `actions`.
-- `channels` only applies to `send_push_notification` and `start_live_activity`. If your payload already includes `target` or `channels`, the action leaves it unchanged.
+- `channels` only applies to `send_push_notification`, `stream_live_activity`, and `start_live_activity`. If your payload already includes `target` or `channels`, the action leaves it unchanged.

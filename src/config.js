@@ -16,7 +16,8 @@ export default class Config {
    * @property {string?} apiKey - The authentication value used with the ActivitySmith API.
    * @property {boolean} errors - If the job should exit after errors or succeed.
    * @property {string?} liveActivityId - Id of live activity to update/end.
-   * @property {string[]} channels - Optional channels for send/start actions.
+   * @property {string?} streamKey - Stable stream key for stateless stream actions.
+   * @property {string[]} channels - Optional channels for send/stream/start actions.
    * @property {string?} payload - Request contents from the provided input.
    * @property {string?} payloadDelimiter - Separator for nested attributes.
    * @property {string?} payloadFilePath - Location of a JSON request payload.
@@ -62,6 +63,7 @@ export default class Config {
       apiKey: core.getInput("api-key"),
       errors: core.getBooleanInput("errors"),
       liveActivityId: core.getInput("live-activity-id"),
+      streamKey: core.getInput("stream-key"),
       channels: this.parseChannels(core.getInput("channels")),
       payload: core.getInput("payload"),
       payloadDelimiter: core.getInput("payload-delimiter"),
@@ -103,6 +105,13 @@ export default class Config {
         if (!this.inputs.liveActivityId) {
           throw new ActivitySmithError(core, "Missing input! A live activity id must be provided.");
         }
+        break;
+      case ActionType.StreamLiveActivity:
+      case ActionType.EndLiveActivityStream:
+        if (!this.inputs.streamKey) {
+          throw new ActivitySmithError(core, "Missing input! A stream key must be provided.");
+        }
+        break;
       default:
         break;
     }
