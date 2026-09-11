@@ -1,6 +1,6 @@
 # ActivitySmith GitHub Action
 
-The official ActivitySmith GitHub Action. Send [Push Notifications](#push-notifications) with optional rich media, and drive [Live Activities](#live-activities) with full lifecycle control or stream updates directly from your workflows.
+The official ActivitySmith GitHub Action. Send [Push Notifications](#push-notifications) with optional rich media, and drive [Live Activities](#live-activities) with stream updates directly from your workflows.
 
 ## Live Activities
 
@@ -8,14 +8,14 @@ The official ActivitySmith GitHub Action. Send [Push Notifications](#push-notifi
   <img src="https://cdn.activitysmith.com/features/update-live-activity.png" alt="Deployment Live Activity" width="680" />
 </p>
 
-GitHub Actions is a natural fit for full lifecycle control. A workflow has a
-clear start, middle, and end, and step outputs make it easy to pass
-`live_activity_id` from one step to the next. For most GitHub workflows, this
-is the best way to drive Live Activities.
+Use Live Activity streams for deployment workflows. Send the latest state with
+one `stream-key` throughout the job; ActivitySmith starts or updates the activity
+without passing an activity ID between steps.
 
-Use stream actions when the same Live Activity should be updated across
-scheduled runs, separate workflows, or other stateless automation where you do
-not want to store `live_activity_id` yourself.
+Use a key containing `github.repository_id`, `github.run_id`, and
+`github.run_attempt` to give every run and rerun its own stream. Send complete
+content state at each milestone so an update can also start the activity if the
+initial request was missed.
 
 Live Activity UI types:
 
@@ -26,15 +26,14 @@ Live Activity UI types:
 - `alert`: best for an important state with a message and optional actions
 - `timer`: best for countdowns or elapsed-time tracking
 
-### Recommended for GitHub Actions: Full lifecycle control
+### Recommended for GitHub Actions: Live Activity streams
 
-For deployments, releases, migrations, and other bounded workflows, use the
-explicit lifecycle actions:
+1. Send `stream_live_activity` when the job starts.
+2. Send the latest state with the same `stream-key` at each milestone.
+3. Run `end_live_activity_stream` with `always()` when the job finishes.
 
-1. Run `start_live_activity` when the job starts.
-2. Save the returned `live_activity_id`.
-3. Run `update_live_activity` as the workflow moves forward.
-4. Run `end_live_activity` when the work is finished.
+The final payload can set `content_state.auto_dismiss_seconds: 10` to keep the
+result visible for ten seconds before dismissal.
 
 #### Deployment workflow example
 
@@ -45,11 +44,11 @@ Activity to mirror the workflow step by step.
 
 ```yaml
 - name: Start deployment Live Activity
-  id: start_activity
   uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
-    action: start_live_activity
+    action: stream_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    stream-key: workflow-${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     payload: |
       content_state:
         title: "Deploying payments-api"
@@ -65,9 +64,9 @@ Activity to mirror the workflow step by step.
 - name: Update deployment Live Activity
   uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
-    action: update_live_activity
+    action: stream_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    stream-key: workflow-${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     payload: |
       content_state:
         title: "Deploying payments-api"
@@ -81,12 +80,12 @@ Activity to mirror the workflow step by step.
 
 ```yaml
 - name: End deployment Live Activity
-  if: ${{ always() && steps.start_activity.outputs.live_activity_id != '' }}
+  if: ${{ always() }}
   uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
-    action: end_live_activity
+    action: end_live_activity_stream
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    stream-key: workflow-${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     payload: |
       content_state:
         title: "${{ job.status == 'success' && 'payments-api deployed' || 'payments-api deployment failed' }}"
@@ -103,7 +102,7 @@ temporarily unavailable or a request is invalid, the action reports
 `ok: false` without interrupting the rest of your workflow. Set `errors: true`
 when an ActivitySmith operation must fail the step.
 
-### Other lifecycle patterns
+### Other stream examples
 
 #### Progress example
 
@@ -114,9 +113,9 @@ upload, reindex, or data migration.
 - name: Update reindex Live Activity
   uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
-    action: update_live_activity
+    action: stream_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    stream-key: workflow-${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     payload: |
       content_state:
         title: "Reindexing product search"
@@ -135,9 +134,9 @@ while a migration is running.
 - name: Update canary health Live Activity
   uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
-    action: update_live_activity
+    action: stream_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    stream-key: workflow-${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     payload: |
       content_state:
         title: "Canary Health"
@@ -166,11 +165,11 @@ ActivitySmith backend.
 
 ```yaml
 - name: Start Live Activity with open URL action
-  id: start_activity
   uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
-    action: start_live_activity
+    action: stream_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+    stream-key: workflow-${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     payload: |
       content_state:
         title: "Deploying payments-api"
@@ -190,15 +189,16 @@ ActivitySmith backend.
 - name: Update Live Activity with webhook action
   uses: ActivitySmithHQ/activitysmith-github-action@v1
   with:
-    action: update_live_activity
+    action: stream_live_activity
     api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-    live-activity-id: ${{ steps.start_activity.outputs.live_activity_id }}
+    stream-key: workflow-${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     payload: |
       content_state:
         title: "Reindexing product search"
         subtitle: "Shard 7 of 12"
         number_of_steps: 12
         current_step: 7
+        type: "segmented_progress"
       action:
         title: "Pause Reindex"
         type: "webhook"
@@ -209,9 +209,9 @@ ActivitySmith backend.
           requested_by: "activitysmith-github-action"
 ```
 
-### Use stream when the activity spans multiple runs
+### Streams spanning multiple runs
 
-Stream actions are still useful in GitHub Actions when the same Live Activity
+Use a stable key across runs when the same Live Activity
 should be updated by scheduled workflows, separate workflow runs, or jobs that
 should stay stateless. In that case, send the latest state with a stable
 `stream-key` and ActivitySmith will start or update the Live Activity for you.
@@ -258,6 +258,12 @@ Stream responses include an `operation` field, also exposed as
 - `noop`: the incoming state matched the current state, so no update was sent
 - `paused`: the stream is paused, so no Live Activity was started or updated
 - `ended`: returned by `end_live_activity_stream` after the stream is ended
+
+### Legacy lifecycle compatibility
+
+`start_live_activity`, `update_live_activity`, and `end_live_activity` remain
+supported for existing workflows that pass `live_activity_id` between steps.
+Use stream actions for new workflows and when migrating existing examples.
 
 ## Push Notifications
 
@@ -405,7 +411,7 @@ Show a number on the ActivitySmith app icon. Send `0` to clear it, and optionall
 - Use either `payload` or `payload-file-path`.
 - Both inline payloads and payload files can be JSON or YAML.
 - Live Activity payloads go under `content_state` and should use snake_case keys.
-- `live-activity-id` is required for update and end actions.
+- `live-activity-id` is required only for legacy `update_live_activity` and `end_live_activity` actions.
 - `stream-key` is required for stream start/update and stream end actions.
 - Push notification payloads support optional `media`, `redirection`, and up to 4 `actions`.
 - Live Activity payloads support one optional `action`.
