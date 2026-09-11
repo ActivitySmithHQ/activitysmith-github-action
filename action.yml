@@ -14,7 +14,7 @@ inputs:
     required: false
     default: "false"
   live-activity-id:
-    description: "ID of the live activity (required for update/ending)"
+    description: "Live Activity ID. Required only for legacy update_live_activity and end_live_activity actions."
     required: false
   stream-key:
     description: "Stable stream key for stream_live_activity and end_live_activity_stream."

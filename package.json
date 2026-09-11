@@ -1,6 +1,6 @@
 {
   "name": "activitysmith-github-action",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "The official ActivitySmith GitHub Action. Send push notifications, drive Live Activities, update widget metrics, and set app icon badge counts from workflows.",
   "main": "dist/index.js",
   "type": "module",

@@ -77,12 +77,13 @@ jobs:
             value: ${{ github.run_number }}
 
       - name: Stream Live Activity
+        id: stream_start
         if: always()
         uses: ./
         with:
           action: stream_live_activity
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-          stream-key: github-action-smoke-${{ github.run_id }}
+          stream-key: github-action-smoke-${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
           channels: ${{ inputs.channel }}
           errors: true
           payload: |
@@ -96,13 +97,35 @@ jobs:
                 symbol: checkmark.circle
                 color: blue
 
+      - name: Update Live Activity stream
+        id: stream_update
+        if: always()
+        uses: ./
+        with:
+          action: stream_live_activity
+          api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
+          stream-key: github-action-smoke-${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          channels: ${{ inputs.channel }}
+          errors: true
+          payload: |
+            content_state:
+              title: "GitHub Action stream smoke test"
+              subtitle: "Run #${{ github.run_number }}"
+              type: alert
+              message: "Stream update succeeded"
+              color: blue
+              icon:
+                symbol: checkmark.circle
+                color: blue
+
       - name: End Live Activity stream
+        id: stream_end
         if: always()
         uses: ./
         with:
           action: end_live_activity_stream
           api-key: ${{ secrets.ACTIVITYSMITH_API_KEY }}
-          stream-key: github-action-smoke-${{ github.run_id }}
+          stream-key: github-action-smoke-${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
           errors: true
           payload: |
             content_state:
@@ -111,6 +134,27 @@ jobs:
               message: "All stream operations completed"
               color: green
               auto_dismiss_seconds: 10
+
+      - name: Verify stream lifecycle
+        if: always()
+        env:
+          START_OPERATION: ${{ steps.stream_start.outputs.operation }}
+          UPDATE_OPERATION: ${{ steps.stream_update.outputs.operation }}
+          END_OPERATION: ${{ steps.stream_end.outputs.operation }}
+          START_ACTIVITY_ID: ${{ steps.stream_start.outputs.live_activity_id }}
+          UPDATE_RESPONSE: ${{ steps.stream_update.outputs.response }}
+          END_RESPONSE: ${{ steps.stream_end.outputs.response }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          assert.equal(process.env.START_OPERATION, "started");
+          assert.equal(process.env.UPDATE_OPERATION, "updated");
+          assert.equal(process.env.END_OPERATION, "ended");
+          assert.ok(process.env.START_ACTIVITY_ID);
+          for (const response of [process.env.UPDATE_RESPONSE, process.env.END_RESPONSE]) {
+            assert.equal(JSON.parse(response).activity_id, process.env.START_ACTIVITY_ID);
+          }
+          NODE
 
       - name: Start manual Live Activity
         id: start_activity
